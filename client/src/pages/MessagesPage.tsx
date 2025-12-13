@@ -35,6 +35,9 @@ export default function MessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [userId, setUserId] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // CRITICAL: Call useWebSocket hook at the top, before any useEffect
+  const ws = useWebSocket();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -46,11 +49,12 @@ export default function MessagesPage() {
     }
   }, []);
 
-  const ws = useWebSocket();
-
   // Subscribe to real-time message events
   useEffect(() => {
     if (selectedConversation && ws.connected) {
+      // Fetch messages when conversation is selected
+      fetchMessages(selectedConversation._id);
+      
       ws.joinConversation(selectedConversation._id);
 
       // Listen for new messages

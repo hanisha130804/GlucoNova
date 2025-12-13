@@ -21,11 +21,30 @@ export function useWebSocket() {
     const connectWebSocket = async () => {
       try {
         const token = localStorage.getItem('token');
-        if (!token) return;
+        if (!token) {
+          console.log('No token found, skipping WebSocket connection');
+          return;
+        }
 
         // Use the current location's protocol and host for WebSocket URL
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/ws?token=${encodeURIComponent(token)}`;
+        
+        // Build host with port - CRITICAL FIX for development
+        let host = window.location.hostname;
+        const port = window.location.port;
+        
+        console.log('WebSocket setup - hostname:', host, 'port:', port);
+        
+        // In development, explicitly use port 8080
+        if (host === 'localhost' || host === '127.0.0.1') {
+          host = 'localhost:8080';
+          console.log('Development mode - using default port 8080');
+        } else if (port && port !== '' && port !== 'undefined' && port !== '80' && port !== '443') {
+          host = `${host}:${port}`;
+        }
+        
+        const wsUrl = `${protocol}//${host}/ws?token=${encodeURIComponent(token)}`;
+        console.log('Attempting WebSocket connection to:', wsUrl);
 
         ws.current = new WebSocket(wsUrl);
 
@@ -51,6 +70,7 @@ export function useWebSocket() {
 
         ws.current.onerror = (error) => {
           console.error('WebSocket error:', error);
+          console.error('WebSocket URL that failed:', ws.current?.url);
         };
 
         ws.current.onclose = () => {
@@ -61,6 +81,12 @@ export function useWebSocket() {
         };
       } catch (error) {
         console.error('Failed to connect to WebSocket:', error);
+        console.error('Error details:', {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          hostname: window.location.hostname,
+          port: window.location.port,
+          protocol: window.location.protocol
+        });
       }
     };
 

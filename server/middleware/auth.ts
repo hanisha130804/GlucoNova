@@ -51,8 +51,32 @@ export function approvalMiddleware(req: AuthRequest, res: Response, next: NextFu
     return res.status(401).json({ message: 'Authentication required' });
   }
 
-  if (req.user.role !== 'admin' && !req.user.isApproved) {
-    return res.status(403).json({ message: 'Account pending approval' });
+  // Allow admins regardless of approval status
+  if (req.user.role === 'admin') {
+    next();
+    return;
+  }
+
+  // TEMPORARY FIX: Allow skip-auth users for testing
+  // This allows users who clicked "Skip for now" to upload medical reports during onboarding
+  const skipAuthBypass = req.user.userId && req.user.userId.toString().startsWith('skip-auth');
+  if (skipAuthBypass) {
+    console.log('⚠️ APPROVAL BYPASS: Skip-auth user allowed for onboarding', req.user.userId);
+    next();
+    return;
+  }
+
+  // Check approval status for non-admin users
+  if (!req.user.isApproved) {
+    console.log('❌ APPROVAL DENIED:', {
+      userId: req.user.userId,
+      role: req.user.role,
+      isApproved: req.user.isApproved
+    });
+    return res.status(403).json({ 
+      message: 'Account pending approval',
+      details: 'Your account needs to be approved by an administrator before you can upload files. Please contact support.'
+    });
   }
 
   next();

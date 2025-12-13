@@ -22,15 +22,15 @@ export default function CareTeamPage() {
         <header className="flex items-center justify-between border-b border-border" style={{ height: '72px', padding: '0 24px' }}>
           <div className="flex items-center gap-4">
             <Users className="w-6 h-6 text-primary" />
-            <h2 className="text-xl font-semibold">Care Team</h2>
+            <h2 className="text-xl font-semibold">{t('careTeam.title')}</h2>
           </div>
         </header>
 
         <main className="flex-1 overflow-y-auto">
           <div className="w-full" style={{ padding: '24px 32px' }}>
             <div className="mb-6">
-              <h1 className="text-3xl font-bold mb-1">Your Care Team</h1>
-              <p className="text-muted-foreground">Connect with your doctors, send messages, and manage appointments</p>
+              <h1 className="text-3xl font-bold mb-1">{t('careTeam.yourCareTeam')}</h1>
+              <p className="text-muted-foreground">{t('careTeam.description')}</p>
             </div>
 
             {/* Tab Buttons */}
@@ -45,7 +45,7 @@ export default function CareTeamPage() {
                 }}
               >
                 <Heart className="w-4 h-4 inline mr-2" />
-                My Doctors
+                {t('careTeam.tabs.doctors')}
               </button>
               <button
                 onClick={() => setActiveTab('messages')}
@@ -57,7 +57,7 @@ export default function CareTeamPage() {
                 }}
               >
                 <MessageCircle className="w-4 h-4 inline mr-2" />
-                Messages
+                {t('careTeam.tabs.messages')}
               </button>
               <button
                 onClick={() => setActiveTab('appointments')}
@@ -69,13 +69,13 @@ export default function CareTeamPage() {
                 }}
               >
                 <Calendar className="w-4 h-4 inline mr-2" />
-                Appointments
+                {t('careTeam.tabs.appointments')}
               </button>
             </div>
 
             {isLoading ? (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">Loading care team information...</p>
+                <p className="text-muted-foreground">{t('careTeam.loading')}</p>
               </div>
             ) : (
               <div className="space-y-6">
@@ -84,12 +84,12 @@ export default function CareTeamPage() {
                     <Card className="p-8 glass-card">
                       <div className="text-center">
                         <Heart className="w-12 h-12 text-primary mx-auto mb-4" />
-                        <h3 className="text-xl font-bold mb-2">My Doctors</h3>
+                        <h3 className="text-xl font-bold mb-2">{t('careTeam.doctors.title')}</h3>
                         <p className="text-muted-foreground mb-6">
-                          View and manage your healthcare providers
+                          {t('careTeam.doctors.description')}
                         </p>
                         <Button className="bg-primary hover:bg-primary/90">
-                          View My Doctors
+                          {t('careTeam.doctors.viewButton')}
                         </Button>
                       </div>
                     </Card>
@@ -101,12 +101,12 @@ export default function CareTeamPage() {
                     <Card className="p-8 glass-card">
                       <div className="text-center">
                         <MessageCircle className="w-12 h-12 text-primary mx-auto mb-4" />
-                        <h3 className="text-xl font-bold mb-2">Messages</h3>
+                        <h3 className="text-xl font-bold mb-2">{t('careTeam.messages.title')}</h3>
                         <p className="text-muted-foreground mb-6">
-                          Send secure messages to your care team
+                          {t('careTeam.messages.description')}
                         </p>
                         <Button className="bg-primary hover:bg-primary/90">
-                          Go to Messages
+                          {t('careTeam.messages.goToButton')}
                         </Button>
                       </div>
                     </Card>
@@ -118,12 +118,12 @@ export default function CareTeamPage() {
                     <Card className="p-8 glass-card">
                       <div className="text-center">
                         <Calendar className="w-12 h-12 text-primary mx-auto mb-4" />
-                        <h3 className="text-xl font-bold mb-2">Appointments</h3>
+                        <h3 className="text-xl font-bold mb-2">{t('careTeam.appointments.title')}</h3>
                         <p className="text-muted-foreground mb-6">
-                          Schedule and manage your healthcare appointments
+                          {t('careTeam.appointments.description')}
                         </p>
                         <Button className="bg-primary hover:bg-primary/90">
-                          Go to Appointments
+                          {t('careTeam.appointments.goToButton')}
                         </Button>
                       </div>
                     </Card>

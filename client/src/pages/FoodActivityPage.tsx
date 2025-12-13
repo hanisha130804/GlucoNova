@@ -418,7 +418,13 @@ export default function FoodActivityPage() {
                                   <div className="flex items-center justify-between mb-2">
                                     <p className="text-sm font-medium">{meal.name}</p>
                                     <p className="text-xs text-muted-foreground">
-                                      {new Date(meal.timestamp).toLocaleDateString()}
+                                      {new Date(meal.timestamp).toLocaleString(undefined, {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        hour12: true
+                                      })}
                                     </p>
                                   </div>
                                   <div className="flex gap-2 text-xs flex-wrap">

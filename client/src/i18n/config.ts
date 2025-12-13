@@ -20,7 +20,7 @@ i18n
       te: { translation: teTranslations },
     },
     fallbackLng: 'en', // Fallback language if translation not found
-    debug: false,
+    debug: true, // Enable debug mode to see translation issues
     interpolation: {
       escapeValue: false, // React already escapes values
     },
@@ -31,6 +31,12 @@ i18n
     },
     react: {
       useSuspense: false, // Disable suspense to ensure immediate translations
+      bindI18n: 'languageChanged loaded', // Re-render on language change and resource load
+      bindI18nStore: 'added removed', // Re-render when resources are added/removed
+      transEmptyNodeValue: '', // What to return for empty Trans nodes
+      transSupportBasicHtmlNodes: true, // Allow basic HTML nodes in Trans
+      transKeepBasicHtmlNodesFor: ['br', 'strong', 'i', 'p'], // Keep these HTML nodes
+      nsMode: 'default', // Use default namespace mode for better performance
     },
   });
 
@@ -53,11 +59,18 @@ export const SUPPORTED_LANGUAGES = [
 ];
 
 export const changeLanguage = (languageCode: string) => {
+  // Change the language in i18next
   i18n.changeLanguage(languageCode);
+  
+  // Store the preference in localStorage for persistence
   localStorage.setItem('preferredLanguage', languageCode);
   localStorage.setItem('i18nextLng', languageCode); // Also set this for language detector
-  // Force a page reload to ensure all components re-render with new language
-  window.location.reload();
+  
+  // Force a re-render by updating the document language attribute
+  document.documentElement.lang = languageCode;
+  
+  // Note: Do NOT reload the page to avoid losing session state
+  // React i18next will handle the re-render automatically through bindI18n events
 };
 
 export const getCurrentLanguage = () => {

@@ -255,7 +255,13 @@ export default function GlucosePage() {
                                   <span className="text-xs text-muted-foreground">({status.status})</span>
                                 </div>
                                 <div className="text-xs text-muted-foreground mt-1">
-                                  {new Date(reading.timestamp).toLocaleString()}
+                                  {new Date(reading.timestamp).toLocaleString(undefined, {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    hour12: true
+                                  })}
                                 </div>
                               </div>
                             </div>

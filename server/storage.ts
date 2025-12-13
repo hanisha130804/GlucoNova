@@ -385,11 +385,29 @@ export class DrizzleStorage implements IStorage {
     fileSize: number;
     description?: string;
   }): Promise<MedicalReport> {
-    const patientIdNum = parseInt(patientId);
-    const uploaderIdNum = parseInt(uploaderId);
+    // Handle skip-auth users (temporary IDs during onboarding)
+    let patientIdNum: number;
+    let uploaderIdNum: number;
     
-    if (isNaN(patientIdNum) || isNaN(uploaderIdNum)) {
-      throw new Error('Invalid patient ID or uploader ID');
+    if (patientId.startsWith('skip-auth-')) {
+      // Use temporary ID 0 for skip-auth users
+      patientIdNum = 0;
+      console.log('⚠️ Skip-auth patient ID detected:', patientId);
+    } else {
+      patientIdNum = parseInt(patientId);
+      if (isNaN(patientIdNum)) {
+        throw new Error('Invalid patient ID format');
+      }
+    }
+    
+    if (uploaderId.startsWith('skip-auth-')) {
+      uploaderIdNum = 0;
+      console.log('⚠️ Skip-auth uploader ID detected:', uploaderId);
+    } else {
+      uploaderIdNum = parseInt(uploaderId);
+      if (isNaN(uploaderIdNum)) {
+        throw new Error('Invalid uploader ID format');
+      }
     }
     
     const result = await db.insert(medicalReports).values({
@@ -419,6 +437,19 @@ export class DrizzleStorage implements IStorage {
   // ==================== PREDICTION OPERATIONS ====================
   
   async createPrediction(userId: string, prediction: InsertPrediction): Promise<Prediction> {
+    // For skip-auth users, return a temporary prediction object without persisting to DB
+    if (userId.startsWith('skip-auth-')) {
+      console.log('Creating temporary prediction for skip-auth user:', userId);
+      return {
+        _id: `temp-${Date.now()}`,
+        userId: userId,
+        predictedInsulin: Math.round(prediction.predictedInsulin),
+        confidence: Math.round(prediction.confidence * 100) / 100,
+        factors: prediction.factors,
+        timestamp: new Date().toISOString(),
+      };
+    }
+    
     const userIdNum = parseInt(userId);
     if (isNaN(userIdNum)) throw new Error('Invalid user ID');
     
@@ -491,15 +522,18 @@ export class DrizzleStorage implements IStorage {
       return {
         _id: `temp-${Date.now()}`,
         userId: userId,
-        dateOfBirth: profile.dateOfBirth || undefined,
+        dateOfBirth: profile.dateOfBirth,
         weight: profile.weight,
         height: profile.height,
         lastA1c: profile.lastA1c,
-        medications: profile.medications,
+        medications: profile.medications ? profile.medications.join('; ') : undefined,
         typicalInsulin: profile.typicalInsulin,
         targetRange: profile.targetRange,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        diabetesType: profile.diabetesType,
+        icr: profile.icr,
+        isf: profile.isf,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
     }
     
@@ -512,9 +546,12 @@ export class DrizzleStorage implements IStorage {
       weight: profile.weight?.toString() || null,
       height: profile.height?.toString() || null,
       lastA1c: profile.lastA1c?.toString() || null,
-      medications: profile.medications || null,
+      medications: profile.medications ? profile.medications.join('; ') : null,
       typicalInsulin: profile.typicalInsulin?.toString() || null,
       targetRange: profile.targetRange || null,
+      diabetesType: profile.diabetesType || null,
+      icr: profile.icr?.toString() || null,
+      isf: profile.isf?.toString() || null,
     }).returning();
     
     const record = result[0];
@@ -525,9 +562,12 @@ export class DrizzleStorage implements IStorage {
       weight: record.weight ? parseFloat(record.weight) : undefined,
       height: record.height ? parseFloat(record.height) : undefined,
       lastA1c: record.lastA1c ? parseFloat(record.lastA1c) : undefined,
-      medications: record.medications || undefined,
+      medications: record.medications ? record.medications.split('; ').filter(m => m.trim() !== '') : undefined,
       typicalInsulin: record.typicalInsulin ? parseFloat(record.typicalInsulin) : undefined,
       targetRange: record.targetRange || undefined,
+      diabetesType: record.diabetesType || undefined,
+      icr: record.icr ? parseFloat(record.icr) : undefined,
+      isf: record.isf ? parseFloat(record.isf) : undefined,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
     };
@@ -557,9 +597,10 @@ export class DrizzleStorage implements IStorage {
       weight: record.weight ? parseFloat(record.weight) : undefined,
       height: record.height ? parseFloat(record.height) : undefined,
       lastA1c: record.lastA1c ? parseFloat(record.lastA1c) : undefined,
-      medications: record.medications || undefined,
+      medications: record.medications ? record.medications.split('; ').filter(m => m.trim() !== '') : undefined,
       typicalInsulin: record.typicalInsulin ? parseFloat(record.typicalInsulin) : undefined,
       targetRange: record.targetRange || undefined,
+      diabetesType: record.diabetesType || undefined,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
     };
@@ -576,11 +617,12 @@ export class DrizzleStorage implements IStorage {
         weight: profile.weight,
         height: profile.height,
         lastA1c: profile.lastA1c,
-        medications: profile.medications,
+        medications: profile.medications ? profile.medications.join('; ') : undefined,
         typicalInsulin: profile.typicalInsulin,
         targetRange: profile.targetRange,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        diabetesType: profile.diabetesType,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
     }
     
@@ -595,9 +637,12 @@ export class DrizzleStorage implements IStorage {
     if (profile.weight !== undefined) updateData.weight = profile.weight !== null && profile.weight !== undefined ? profile.weight.toString() : null;
     if (profile.height !== undefined) updateData.height = profile.height !== null && profile.height !== undefined ? profile.height.toString() : null;
     if (profile.lastA1c !== undefined) updateData.lastA1c = profile.lastA1c !== null && profile.lastA1c !== undefined ? profile.lastA1c.toString() : null;
-    if (profile.medications !== undefined) updateData.medications = profile.medications || null;
+    if (profile.medications !== undefined) updateData.medications = profile.medications ? profile.medications.join('; ') : null;
     if (profile.typicalInsulin !== undefined) updateData.typicalInsulin = profile.typicalInsulin !== null && profile.typicalInsulin !== undefined ? profile.typicalInsulin.toString() : null;
     if (profile.targetRange !== undefined) updateData.targetRange = profile.targetRange || null;
+    if (profile.diabetesType !== undefined) updateData.diabetesType = profile.diabetesType || null;
+    if (profile.icr !== undefined) updateData.icr = profile.icr !== null && profile.icr !== undefined ? profile.icr.toString() : null;
+    if (profile.isf !== undefined) updateData.isf = profile.isf !== null && profile.isf !== undefined ? profile.isf.toString() : null;
     
     const result = await db.update(userProfiles)
       .set(updateData)
@@ -614,7 +659,7 @@ export class DrizzleStorage implements IStorage {
       weight: record.weight ? parseFloat(record.weight) : undefined,
       height: record.height ? parseFloat(record.height) : undefined,
       lastA1c: record.lastA1c ? parseFloat(record.lastA1c) : undefined,
-      medications: record.medications || undefined,
+      medications: record.medications ? record.medications.split('; ').filter(m => m.trim() !== '') : undefined,
       typicalInsulin: record.typicalInsulin ? parseFloat(record.typicalInsulin) : undefined,
       targetRange: record.targetRange || undefined,
       createdAt: record.createdAt,

@@ -315,7 +315,13 @@ export default function HealthDataPage() {
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-semibold">
-                          {new Date(entry.timestamp).toLocaleString()}
+                          {new Date(entry.timestamp).toLocaleString(undefined, {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true
+                          })}
                         </span>
                       </div>
                       <div className="grid grid-cols-3 gap-2 text-sm">

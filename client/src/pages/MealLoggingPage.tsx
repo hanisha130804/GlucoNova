@@ -920,7 +920,13 @@ export default function MealLoggingPage() {
                         )}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {new Date(meal.timestamp).toLocaleString()}
+                        {new Date(meal.timestamp).toLocaleString(undefined, {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true
+                        })}
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div>

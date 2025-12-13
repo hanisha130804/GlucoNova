@@ -7,6 +7,9 @@ import ProgressCard from '@/components/ProgressCard';
 import QuickActionCard from '@/components/QuickActionCard';
 import OnboardingModal from '@/components/OnboardingModal';
 import OnboardingBanner from '@/components/OnboardingBanner';
+import LanguageSelector from '@/components/LanguageSelector';
+import InsulinPredictionCard from '@/components/InsulinPredictionCard';
+import MedicationPanel from '@/components/MedicationPanel';
 import { Droplet, Target, Utensils, Syringe, Heart, Pill, MessageCircle, FileText, Activity, Stethoscope, Thermometer, TestTube, Clipboard, Sparkles, Brain, TrendingUp, AlertCircle, Award, Flame, Zap } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -83,38 +86,45 @@ export default function DashboardPage() {
     console.log('skipAuth:', skipAuth);
     console.log('isNewUser:', isNewUser);
     console.log('user:', user);
+    console.log('user.role:', user?.role);
     console.log('showOnboarding state:', showOnboarding);
     console.log('isOnboardingMandatory state:', isOnboardingMandatory);
     
-    // PRIORITY 1: For ALL new users (registered, first login, or skip-auth), show banner if not completed
-    // This ensures all new users see the onboarding prompt
-    if (isNewUser === 'true' && !onboardingCompleted) {
-      console.log('✅ Showing BANNER for NEW USER');
-      setShowBanner(true);
+    // PRIORITY 0: Doctors and Admins should NOT see onboarding modal
+    // They don't need to enter medical data during onboarding
+    if (user && (user.role === 'doctor' || user.role === 'admin')) {
+      console.log('✅ Doctor/Admin user detected - skipping onboarding');
       setShowOnboarding(false);
+      setShowBanner(false);
       setIsOnboardingMandatory(false);
+      // Mark as completed to prevent showing in future
+      localStorage.setItem('onboardingCompleted', 'true');
       return;
     }
     
-    // PRIORITY 2: For skip-auth users, ALWAYS show mandatory onboarding if not completed
+    // PRIORITY 1: For skip-auth users, ALWAYS show mandatory onboarding immediately if not completed
     // This ensures skip-auth users can't bypass onboarding
     if (skipAuth === 'true' && !onboardingCompleted) {
-      console.log('✅ Showing MANDATORY onboarding for SKIP-AUTH user');
+      console.log('✅ Showing MANDATORY onboarding IMMEDIATELY for SKIP-AUTH user');
       setShowOnboarding(true);
       setShowBanner(false);
       setIsOnboardingMandatory(true);
       return;
     }
     
-    // PRIORITY 3: For authenticated returning users who haven't completed onboarding
-    if (!onboardingCompleted && !onboardingSkipped && !skipAuth && !isNewUser) {
-      console.log('ℹ️ Showing OPTIONAL onboarding for returning authenticated user');
-      setShowOnboarding(true);
-      setIsOnboardingMandatory(false);
+    // PRIORITY 2: For authenticated new users, show onboarding modal on EVERY login
+    // This ensures patients can upload medical reports and complete profile setup
+    // Modal is optional (not mandatory) so they can skip if needed
+    // NOTE: Modal will appear on every login until onboarding is completed
+    if (!skipAuth && !onboardingCompleted) {
+      console.log('✅ AUTHENTICATED USER - Showing optional onboarding modal for medical report upload');
+      setShowBanner(false);
+      setShowOnboarding(true);  // Show modal so patients can upload medical reports
+      setIsOnboardingMandatory(false);  // Optional - can be skipped
       return;
     }
     
-    // PRIORITY 4: For users who previously skipped onboarding, show banner
+    // PRIORITY 3: For users who previously skipped onboarding, show banner
     if (!onboardingCompleted && onboardingSkipped === 'true' && !skipAuth) {
       console.log('ℹ️ Showing onboarding banner for user who previously skipped');
       setShowBanner(true);
@@ -130,6 +140,7 @@ export default function DashboardPage() {
     setShowBanner(false);
     setIsOnboardingMandatory(false);
     localStorage.removeItem('isNewUser'); // Clear new user flag
+    localStorage.removeItem('onboardingSkipped'); // Clear skip flag
     toast({
       title: t('common.success'),
       description: t('dashboard.profile.setupComplete'),
@@ -196,6 +207,7 @@ export default function DashboardPage() {
 
   const latestGlucose = healthData?.data?.[0]?.glucose || 0;
   const latestInsulin = healthData?.data?.[0]?.insulin || 0;
+  const latestReading = healthData?.data?.[0]; // Latest health data entry for timestamp
   
   const totalCarbs = mealsData?.data?.reduce((sum: number, meal: any) => sum + (meal.carbs || 0), 0) || 0;
   
@@ -395,6 +407,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-4">
               <h2 className="text-xl font-semibold">{t('dashboard.title')}</h2>
             </div>
+            <LanguageSelector />
           </header>
           
           <main className="flex-1 overflow-y-auto">
@@ -413,7 +426,7 @@ export default function DashboardPage() {
                 {/* Main Content Grid: 1fr + 360px */}
                 <div className="grid gap-7" style={{ gridTemplateColumns: '1fr 360px' }}>
                   {/* Left Column - Main Content */}
-                  <div className="space-y-6">
+                  <div className="space-y-6" style={{ minHeight: '100vh' }}>
                     {/* Dashboard Tabs */}
                     <div className="flex gap-2 mb-2">
                       <button 
@@ -453,35 +466,43 @@ export default function DashboardPage() {
                                 <Sparkles className="w-5 h-5 text-emerald-400" />
                               </div>
                               <div>
-                                <h2 className="text-xl font-bold text-foreground">AI Summary for Today</h2>
-                                <p className="text-xs text-muted-foreground">Last updated: {new Date().toLocaleTimeString()}</p>
+                                <h2 className="text-xl font-bold text-foreground">{t('dashboard.aiSummary.title')}</h2>
+                                <p className="text-xs text-muted-foreground">
+                                  {t('dashboard.aiSummary.lastUpdated')} {latestReading ? new Date(latestReading.timestamp).toLocaleString(undefined, { 
+                                    hour: '2-digit', 
+                                    minute: '2-digit',
+                                    month: 'short', 
+                                    day: 'numeric',
+                                    hour12: true 
+                                  }) : t('common.noData') || 'No data'}
+                                </p>
                               </div>
                             </div>
                             <div className="flex gap-2">
                               <span className="text-xs px-3 py-1 rounded-full font-medium" style={{
                                 background: 'rgba(34,197,94,0.2)',
                                 color: '#22c55e'
-                              }}>🟢 Stable Day</span>
+                              }}>🟢 {t('dashboard.aiSummary.stableDay')}</span>
                               <span className="text-xs px-3 py-1 rounded-full font-medium" style={{
                                 background: 'rgba(59,130,246,0.2)',
                                 color: '#3b82f6'
-                              }}>🔵 Mild Morning Risk</span>
+                              }}>🔵 {t('dashboard.aiSummary.mildMorningRisk')}</span>
                             </div>
                           </div>
                           <div className="p-4 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
                             <p className="text-sm text-foreground leading-relaxed">
-                              Your glucose has been <span className="font-semibold text-emerald-400">stable for the past 8 hours</span> with an average of {latestGlucose || 120} mg/dL. 
+                              {t('dashboard.aiSummary.glucoseStable')} <span className="font-semibold text-emerald-400">{t('dashboard.aiSummary.stableHours')}</span> {t('dashboard.aiSummary.withAverage')} {latestGlucose || 120} mg/dL. 
                               {totalCarbs > 150 ? (
-                                <> Breakfast carbs yesterday caused a spike. Try <span className="font-semibold text-cyan-400">reducing rice portion to ½ cup</span>.</>
+                                <> {t('dashboard.aiSummary.breakfastSpike')} <span className="font-semibold text-cyan-400">{t('dashboard.aiSummary.reduceRice')}</span>.</>
                               ) : (
-                                <> Your carb intake is well-balanced. Keep up the <span className="font-semibold text-emerald-400">good work</span>!</>
+                                <> {t('dashboard.aiSummary.carbsBalanced')} <span className="font-semibold text-emerald-400">{t('dashboard.aiSummary.goodWork')}</span>!</>
                               )}
                             </p>
                           </div>
                           {timeInRange < 70 && (
                             <div className="mt-3 p-3 rounded-lg flex items-start gap-3" style={{ background: 'rgba(251,146,60,0.1)' }}>
                               <AlertCircle className="w-4 h-4 text-orange-400 mt-0.5" />
-                              <p className="text-xs text-muted-foreground">⚠️ Pattern Detected: Post-meal spikes after lunch (3 days). Consider 10-min walk after eating.</p>
+                              <p className="text-xs text-muted-foreground">⚠️ {t('dashboard.aiSummary.patternDetected')}</p>
                             </div>
                           )}
                         </Card>
@@ -549,16 +570,16 @@ export default function DashboardPage() {
                           <div className="p-2 rounded-lg" style={{ background: 'rgba(59,130,246,0.2)' }}>
                             <TrendingUp className="w-5 h-5 text-blue-400" />
                           </div>
-                          <h2 className="text-lg font-bold text-foreground">Predicted Glucose (Next 4 Hours)</h2>
+                          <h2 className="text-lg font-bold text-foreground">{t('dashboard.glucosePrediction.title')}</h2>
                         </div>
                         <span className="text-xs px-3 py-1 rounded-full font-medium" style={{
                           background: 'rgba(167,139,250,0.2)',
                           color: '#a78bfa'
-                        }}>AI Confidence: Medium</span>
+                        }}>{t('dashboard.glucosePrediction.aiConfidence')} {t('dashboard.glucosePrediction.medium')}</span>
                       </div>
                       <div className="grid grid-cols-2 gap-6">
                         <div>
-                          <p className="text-sm text-muted-foreground mb-2">Predicted Range</p>
+                          <p className="text-sm text-muted-foreground mb-2">{t('dashboard.glucosePrediction.predictedRange')}</p>
                           <div className="flex items-baseline gap-2">
                             <span className="text-4xl font-bold text-blue-400">{latestGlucose > 0 ? Math.max(70, latestGlucose - 15) : 95}</span>
                             <span className="text-2xl text-muted-foreground">-</span>
@@ -570,23 +591,28 @@ export default function DashboardPage() {
                           <div className="space-y-2">
                             <div className="flex items-center gap-2">
                               <div className="w-2 h-2 rounded-full" style={{ background: '#22c55e' }} />
-                              <span className="text-xs text-muted-foreground">Based on recent patterns</span>
+                              <span className="text-xs text-muted-foreground">{t('dashboard.glucosePrediction.basedOnPatterns')}</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <div className="w-2 h-2 rounded-full" style={{ background: '#3b82f6' }} />
-                              <span className="text-xs text-muted-foreground">Considers meal + insulin</span>
+                              <span className="text-xs text-muted-foreground">{t('dashboard.glucosePrediction.considersMeal')}</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <div className="w-2 h-2 rounded-full" style={{ background: '#a78bfa' }} />
-                              <span className="text-xs text-muted-foreground">Activity factored in</span>
+                              <span className="text-xs text-muted-foreground">{t('dashboard.glucosePrediction.activityFactored')}</span>
                             </div>
                           </div>
                         </div>
                       </div>
                       <div className="mt-4 p-3 rounded-lg" style={{ background: 'rgba(59,130,246,0.1)' }}>
-                        <p className="text-xs text-muted-foreground">💡 <span className="font-medium text-foreground">Tip:</span> Your glucose typically peaks 90 minutes after meals. Plan accordingly.</p>
+                        <p className="text-xs text-muted-foreground">💡 <span className="font-medium text-foreground">{t('dashboard.glucosePrediction.tip')}</span> {t('dashboard.glucosePrediction.peakTiming')}</p>
                       </div>
                     </Card>
+
+                    {/* AI Insulin Prediction Calculator */}
+                    <InsulinPredictionCard 
+                      userProfile={profileData?.profile}
+                    />
 
                     {/* Quick Actions at bottom with colorful variety */}
                     <div>
@@ -648,24 +674,24 @@ export default function DashboardPage() {
                         <div className="p-2 rounded-lg" style={{ background: 'rgba(251,146,60,0.2)' }}>
                           <AlertCircle className="w-5 h-5 text-orange-400" />
                         </div>
-                        <h2 className="text-xl font-bold">Hypo / Hyper Risk Radar</h2>
+                        <h2 className="text-xl font-bold">{t('dashboard.riskRadar.title')}</h2>
                       </div>
                       <div className="grid grid-cols-4 gap-4">
                         <div className="text-center p-4 rounded-lg" style={{ background: timeInRange >= 70 ? 'rgba(34,197,94,0.1)' : 'rgba(251,146,60,0.1)' }}>
-                          <p className="text-xs text-muted-foreground mb-2">Morning High</p>
+                          <p className="text-xs text-muted-foreground mb-2">{t('dashboard.riskRadar.morningHigh')}</p>
                           <p className="text-2xl font-bold" style={{ color: timeInRange >= 70 ? '#22c55e' : '#fb923c' }}>{timeInRange >= 70 ? '6%' : '18%'}</p>
                         </div>
                         <div className="text-center p-4 rounded-lg" style={{ background: 'rgba(34,197,94,0.1)' }}>
-                          <p className="text-xs text-muted-foreground mb-2">Post-Dinner Spike</p>
+                          <p className="text-xs text-muted-foreground mb-2">{t('dashboard.riskRadar.postDinnerSpike')}</p>
                           <p className="text-2xl font-bold text-emerald-400">12%</p>
                         </div>
                         <div className="text-center p-4 rounded-lg" style={{ background: 'rgba(34,197,94,0.1)' }}>
-                          <p className="text-xs text-muted-foreground mb-2">Late-Night Drop</p>
+                          <p className="text-xs text-muted-foreground mb-2">{t('dashboard.riskRadar.lateNightDrop')}</p>
                           <p className="text-2xl font-bold text-emerald-400">8%</p>
                         </div>
                         <div className="text-center p-4 rounded-lg" style={{ background: 'rgba(34,197,94,0.1)' }}>
-                          <p className="text-xs text-muted-foreground mb-2">Overall Risk</p>
-                          <p className="text-2xl font-bold text-cyan-400">Low</p>
+                          <p className="text-xs text-muted-foreground mb-2">{t('dashboard.riskRadar.overallRisk')}</p>
+                          <p className="text-2xl font-bold text-cyan-400">{t('dashboard.riskRadar.low')}</p>
                         </div>
                       </div>
                     </Card>
@@ -682,26 +708,26 @@ export default function DashboardPage() {
                           <div className="p-2 rounded-lg" style={{ background: 'rgba(167,139,250,0.2)' }}>
                             <Pill className="w-5 h-5 text-purple-400" />
                           </div>
-                          <h2 className="text-xl font-bold">Medication Adherence</h2>
+                          <h2 className="text-xl font-bold">{t('dashboard.medicationAdherence.title')}</h2>
                         </div>
                         <div className="flex items-center gap-2">
                           <Flame className="w-5 h-5 text-orange-400" />
                           <span className="text-2xl font-bold text-foreground">6</span>
-                          <span className="text-sm text-muted-foreground">day streak</span>
+                          <span className="text-sm text-muted-foreground">{t('dashboard.medicationAdherence.dayStreak')}</span>
                         </div>
                       </div>
                       <div className="space-y-4">
                         <div>
                           <div className="flex justify-between text-sm mb-2">
-                            <span className="text-muted-foreground">This Week</span>
-                            <span className="font-medium text-emerald-400">100% adherence</span>
+                            <span className="text-muted-foreground">{t('dashboard.medicationAdherence.thisWeek')}</span>
+                            <span className="font-medium text-emerald-400">100% {t('dashboard.medicationAdherence.adherence')}</span>
                           </div>
                           <div className="w-full bg-secondary rounded-full h-2">
                             <div className="h-2 rounded-full" style={{ width: '100%', background: 'linear-gradient(to right, #10b981, #22c55e)' }} />
                           </div>
                         </div>
                         <div className="grid grid-cols-7 gap-2">
-                          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, idx) => (
+                          {[t('dashboard.medicationAdherence.mon'), t('dashboard.medicationAdherence.tue'), t('dashboard.medicationAdherence.wed'), t('dashboard.medicationAdherence.thu'), t('dashboard.medicationAdherence.fri'), t('dashboard.medicationAdherence.sat'), t('dashboard.medicationAdherence.sun')].map((day, idx) => (
                             <div key={day} className="text-center">
                               <p className="text-xs text-muted-foreground mb-1">{day}</p>
                               <div className="w-full h-8 rounded-lg flex items-center justify-center" style={{
@@ -776,7 +802,7 @@ export default function DashboardPage() {
                               <div className="p-2 rounded-lg bg-amber-500/20">
                                 <Brain className="w-5 h-5 text-amber-500" />
                               </div>
-                              <h2 className="text-xl font-bold">Diabetes Control Summary</h2>
+                              <h2 className="text-xl font-bold">{t('dashboard.diabetesSummary.title')}</h2>
                               <div className="ml-auto">
                                 <span className={`text-xs px-3 py-1 rounded-full font-medium ${
                                   diabetesSummary.control_level === 'good' ? 'bg-emerald-500/20 text-emerald-500' :
@@ -790,13 +816,13 @@ export default function DashboardPage() {
                             
                             <div className="space-y-4">
                               <div className="p-4 rounded-lg bg-secondary/50 border border-border">
-                                <p className="text-sm font-medium text-foreground mb-2">Clinical Summary</p>
+                                <p className="text-sm font-medium text-foreground mb-2">{t('dashboard.diabetesSummary.clinicalSummary')}</p>
                                 <p className="text-sm text-muted-foreground">{diabetesSummary.summary_sentence}</p>
                               </div>
                               
                               {diabetesSummary.key_risks && diabetesSummary.key_risks.length > 0 && (
                                 <div className="p-4 rounded-lg bg-secondary/50 border border-border">
-                                  <p className="text-sm font-medium text-foreground mb-2">Key Risk Areas</p>
+                                  <p className="text-sm font-medium text-foreground mb-2">{t('dashboard.diabetesSummary.keyRiskAreas')}</p>
                                   <ul className="space-y-1">
                                     {diabetesSummary.key_risks.map((risk: string, idx: number) => (
                                       <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
@@ -810,7 +836,7 @@ export default function DashboardPage() {
                               
                               {diabetesSummary.recommended_focus_areas && diabetesSummary.recommended_focus_areas.length > 0 && (
                                 <div className="p-4 rounded-lg bg-secondary/50 border border-border">
-                                  <p className="text-sm font-medium text-foreground mb-2">Recommended Focus Areas</p>
+                                  <p className="text-sm font-medium text-foreground mb-2">{t('dashboard.diabetesSummary.recommendedFocus')}</p>
                                   <ul className="space-y-1">
                                     {diabetesSummary.recommended_focus_areas.map((area: string, idx: number) => (
                                       <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
@@ -824,7 +850,7 @@ export default function DashboardPage() {
                               
                               <div className="p-3 rounded-lg bg-background/50 text-center">
                                 <p className="text-xs text-muted-foreground">
-                                  Data Completeness: <span className="font-medium text-foreground">{diabetesSummary.data_completeness}%</span>
+                                  {t('dashboard.diabetesSummary.dataCompleteness')} <span className="font-medium text-foreground">{diabetesSummary.data_completeness}%</span>
                                 </p>
                               </div>
                             </div>
@@ -845,11 +871,11 @@ export default function DashboardPage() {
                         <div className="p-2 rounded-lg" style={{ background: 'rgba(16,185,129,0.2)' }}>
                           <Zap className="w-5 h-5 text-emerald-400" />
                         </div>
-                        <h2 className="text-xl font-bold">AI Lifestyle Coach</h2>
+                        <h2 className="text-xl font-bold">{t('dashboard.lifestyleCoach.title')}</h2>
                         <span className="text-xs px-3 py-1 rounded-full font-medium ml-auto" style={{
                           background: 'rgba(34,211,238,0.2)',
                           color: '#22d3ee'
-                        }}>3 Daily Suggestions</span>
+                        }}>3 {t('dashboard.lifestyleCoach.suggestions')}</span>
                       </div>
                       <div className="grid gap-4">
                         {/* Nutrition Suggestion */}
@@ -859,9 +885,9 @@ export default function DashboardPage() {
                               <Utensils className="w-4 h-4 text-orange-400" />
                             </div>
                             <div className="flex-1">
-                              <h3 className="font-semibold text-foreground mb-1">Nutrition</h3>
+                              <h3 className="font-semibold text-foreground mb-1">{t('dashboard.lifestyleCoach.nutrition')}</h3>
                               <p className="text-sm text-muted-foreground">
-                                Replace chapati at dinner with <span className="font-medium text-cyan-400">½ cup brown rice</span> for lower post-meal peaks.
+                                {t('dashboard.lifestyleCoach.replaceChapati')} <span className="font-medium text-cyan-400">{t('dashboard.lifestyleCoach.brownRice')}</span> {t('dashboard.lifestyleCoach.forLowerPeaks')}
                               </p>
                             </div>
                           </div>
@@ -873,9 +899,9 @@ export default function DashboardPage() {
                               <Activity className="w-4 h-4 text-blue-400" />
                             </div>
                             <div className="flex-1">
-                              <h3 className="font-semibold text-foreground mb-1">Activity</h3>
+                              <h3 className="font-semibold text-foreground mb-1">{t('dashboard.lifestyleCoach.activity')}</h3>
                               <p className="text-sm text-muted-foreground">
-                                <span className="font-medium text-emerald-400">10–15 minute walk</span> after lunch improves glucose by 10–25 mg/dL.
+                                <span className="font-medium text-emerald-400">{t('dashboard.lifestyleCoach.walkAfterLunch')}</span> {t('dashboard.lifestyleCoach.improvesGlucose')}
                               </p>
                             </div>
                           </div>
@@ -887,9 +913,9 @@ export default function DashboardPage() {
                               <Droplet className="w-4 h-4 text-cyan-400" />
                             </div>
                             <div className="flex-1">
-                              <h3 className="font-semibold text-foreground mb-1">Hydration</h3>
+                              <h3 className="font-semibold text-foreground mb-1">{t('dashboard.lifestyleCoach.hydration')}</h3>
                               <p className="text-sm text-muted-foreground">
-                                Drink <span className="font-medium text-blue-400">500 mL water</span> before breakfast to reduce fasting spikes.
+                                {t('dashboard.lifestyleCoach.drinkWater')} <span className="font-medium text-blue-400">{t('dashboard.lifestyleCoach.waterAmount')}</span> {t('dashboard.lifestyleCoach.beforeBreakfast')}
                               </p>
                             </div>
                           </div>
@@ -981,9 +1007,9 @@ export default function DashboardPage() {
                           <div className="p-2 rounded-lg bg-primary/20">
                             <Syringe className="w-5 h-5 text-primary" />
                           </div>
-                          <h2 className="text-xl font-bold">AI Predicted Insulin Range</h2>
+                          <h2 className="text-xl font-bold">{t('dashboard.insulinRange.title')}</h2>
                         </div>
-                        <span className="text-sm text-muted-foreground">Safer Recommendation</span>
+                        <span className="text-sm text-muted-foreground">{t('dashboard.insulinRange.saferRecommendation')}</span>
                       </div>
                       
                       <div className="p-5 rounded-lg" style={{ 
@@ -991,22 +1017,22 @@ export default function DashboardPage() {
                         border: '1px solid rgba(16,185,129,0.2)'
                       }}>
                         <div className="mb-4">
-                          <p className="text-sm text-muted-foreground mb-2">Based on similar days, your typical daily insulin falls between:</p>
+                          <p className="text-sm text-muted-foreground mb-2">{t('dashboard.insulinRange.basedOnDays')}</p>
                           <div className="flex items-baseline gap-3">
                             <span className="text-4xl font-bold text-emerald-400">{latestPrediction?.prediction ? (latestPrediction.prediction.predictedInsulin - 4).toFixed(1) : '16'}</span>
                             <span className="text-2xl text-muted-foreground">-</span>
                             <span className="text-4xl font-bold text-emerald-400">{latestPrediction?.prediction ? (latestPrediction.prediction.predictedInsulin + 4).toFixed(1) : '28'}</span>
-                            <span className="text-lg text-muted-foreground">units</span>
+                            <span className="text-lg text-muted-foreground">{t('dashboard.insulinRange.units')}</span>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-2">Confidence: {latestPrediction?.prediction ? (latestPrediction.prediction.confidence * 100).toFixed(0) : '75'}%</p>
+                          <p className="text-xs text-muted-foreground mt-2">{t('dashboard.insulinRange.confidence')} {latestPrediction?.prediction ? (latestPrediction.prediction.confidence * 100).toFixed(0) : '75'}%</p>
                         </div>
                         <div className="p-3 rounded-lg" style={{ background: 'rgba(251,146,60,0.1)' }}>
-                          <p className="text-xs text-orange-400 font-medium">⚠️ Always consult your doctor before making changes to your insulin dosage.</p>
+                          <p className="text-xs text-orange-400 font-medium">⚠️ {t('dashboard.insulinRange.consultWarning')}</p>
                         </div>
                       </div>
                       
                       <div className="mt-4 pt-4 border-t border-border">
-                        <h3 className="text-sm font-medium text-foreground mb-2">Factors Considered</h3>
+                        <h3 className="text-sm font-medium text-foreground mb-2">{t('dashboard.insulinRange.factorsConsidered')}</h3>
                         <div className="flex flex-wrap gap-2">
                           {latestPrediction?.prediction?.factors?.map((factor: string, index: number) => (
                             <span key={index} className="text-xs px-2 py-1 rounded-full bg-secondary text-muted-foreground">
@@ -1014,9 +1040,9 @@ export default function DashboardPage() {
                             </span>
                           )) || (
                             <>
-                              <span className="text-xs px-2 py-1 rounded-full bg-secondary text-muted-foreground">Recent glucose patterns</span>
-                              <span className="text-xs px-2 py-1 rounded-full bg-secondary text-muted-foreground">Carb intake</span>
-                              <span className="text-xs px-2 py-1 rounded-full bg-secondary text-muted-foreground">Activity level</span>
+                              <span className="text-xs px-2 py-1 rounded-full bg-secondary text-muted-foreground">{t('dashboard.insulinRange.recentPatterns')}</span>
+                              <span className="text-xs px-2 py-1 rounded-full bg-secondary text-muted-foreground">{t('dashboard.insulinRange.carbIntake')}</span>
+                              <span className="text-xs px-2 py-1 rounded-full bg-secondary text-muted-foreground">{t('dashboard.insulinRange.activityLevel')}</span>
                             </>
                           )}
                         </div>
@@ -1184,25 +1210,25 @@ export default function DashboardPage() {
                         <div className="space-y-3">
                           {profileData.profile.weight && (
                             <div className="flex justify-between items-center">
-                              <span className="text-sm text-muted-foreground">Weight</span>
+                              <span className="text-sm text-muted-foreground">{t('dashboard.profile.weight')}</span>
                               <span className="text-sm font-medium text-foreground">{profileData.profile.weight} kg</span>
                             </div>
                           )}
                           {profileData.profile.height && (
                             <div className="flex justify-between items-center">
-                              <span className="text-sm text-muted-foreground">Height</span>
+                              <span className="text-sm text-muted-foreground">{t('dashboard.profile.height')}</span>
                               <span className="text-sm font-medium text-foreground">{profileData.profile.height} cm</span>
                             </div>
                           )}
                           {profileData.profile.lastA1c && (
                             <div className="flex justify-between items-center">
-                              <span className="text-sm text-muted-foreground">Last A1C</span>
+                              <span className="text-sm text-muted-foreground">{t('dashboard.profile.lastA1c')}</span>
                               <span className="text-sm font-medium text-foreground">{profileData.profile.lastA1c}%</span>
                             </div>
                           )}
                           {profileData.profile.typicalInsulin && (
                             <div className="flex justify-between items-center">
-                              <span className="text-sm text-muted-foreground">Typical Insulin</span>
+                              <span className="text-sm text-muted-foreground">{t('dashboard.profile.typicalInsulin')}</span>
                               <span className="text-sm font-medium text-foreground">{profileData.profile.typicalInsulin} U</span>
                             </div>
                           )}
@@ -1219,26 +1245,26 @@ export default function DashboardPage() {
                       <div className="flex items-center justify-between relative z-10">
                         <div className="flex items-center gap-2">
                           <Sparkles className="h-5 w-5 text-primary" />
-                          <h3 className="font-bold text-base text-foreground">AI Insulin Prediction</h3>
+                          <h3 className="font-bold text-base text-foreground">{t('insulin.aiPrediction')}</h3>
                         </div>
                       </div>
                       <div className="flex items-center justify-between relative z-10">
                         {isLoadingPrediction ? (
-                          <p className="text-sm text-muted-foreground">Loading...</p>
+                          <p className="text-sm text-muted-foreground">{t('insulin.prediction.loading')}</p>
                         ) : latestPrediction?.prediction ? (
                           <>
                             <div className="flex items-baseline gap-2">
                               <span className="text-3xl font-bold text-primary leading-none">
                                 {latestPrediction.prediction.predictedInsulin.toFixed(1)}
                               </span>
-                              <span className="text-sm text-muted-foreground">units</span>
+                              <span className="text-sm text-muted-foreground">{t('insulin.prediction.units')}</span>
                             </div>
                             <span className="text-sm text-muted-foreground font-medium">
-                              {(latestPrediction.prediction.confidence * 100).toFixed(0)}% conf.
+                              {(latestPrediction.prediction.confidence * 100).toFixed(0)}% {t('insulin.prediction.confidence')}
                             </span>
                           </>
                         ) : (
-                          <p className="text-sm text-muted-foreground">No data</p>
+                          <p className="text-sm text-muted-foreground">{t('insulin.prediction.noData')}</p>
                         )}
                       </div>
                       <Button
@@ -1248,15 +1274,20 @@ export default function DashboardPage() {
                         className="w-full bg-primary text-primary-foreground relative z-10"
                         size="sm"
                       >
-                        {generatePredictionMutation.isPending ? 'Generating...' : 'Generate Prediction'}
+                        {generatePredictionMutation.isPending ? t('insulin.prediction.generating') : t('insulin.prediction.generateButton')}
                       </Button>
                     </Card>
                     <VoiceAssistantCard
-                      title="Voice Food Logging"
-                      subtitle="Tap mic to log your meal"
-                      buttonText="Log Meal"
+                      title={t('food.voiceLogging')}
+                      subtitle={t('food.tapMicPrompt')}
+                      buttonText={t('food.logMealButton')}
                     />
                     <ProgressCard />
+                    
+                    {/* Medication Panel - Searchable medication sidebar */}
+                    <Card className="p-4 glass-card">
+                      <MedicationPanel />
+                    </Card>
                   </div>
                 </div>
               </>

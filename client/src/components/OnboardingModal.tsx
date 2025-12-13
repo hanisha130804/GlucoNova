@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Card } from '@/components/ui/card';
-import { Upload, FileText, X, Check, Activity, Droplet, Pill, Mic, Heart, Utensils } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Upload, FileText, X, Check, Activity, Droplet, Pill, Mic, Heart, Utensils, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useQuery } from '@tanstack/react-query';
@@ -29,6 +30,7 @@ interface HealthData {
   medications: string;
   typicalInsulin: string;
   targetRange: string;
+  lastA1cKnown?: boolean; // Track if user knows their A1c
 }
 
 export default function OnboardingModal({ isOpen, onClose, onComplete, onSkip, isMandatory = false }: OnboardingModalProps) {
@@ -48,12 +50,131 @@ export default function OnboardingModal({ isOpen, onClose, onComplete, onSkip, i
     medications: '',
     typicalInsulin: '',
     targetRange: '70-180',
+    lastA1cKnown: true, // Default: user knows their A1c
   });
   // Track which fields were auto-filled from the report
   const [extractedFields, setExtractedFields] = useState<Set<keyof HealthData>>(new Set());
   // Track extraction failure
   const [extractionFailed, setExtractionFailed] = useState(false);
+  // DEBUG: Track raw server response for debugging
+  const [debugServerResponse, setDebugServerResponse] = useState<any>(null);
+  // Track field metadata (confidence and source)
+  const [fieldMetadata, setFieldMetadata] = useState<Record<string, { confidence: number; source: string }>>({});
+  // Track diabetes type detection
+  const [diabetesType, setDiabetesType] = useState<string>('');
+  const [diabetesTypeConfidence, setDiabetesTypeConfidence] = useState<number>(0);
+  const [diabetesTypeReasons, setDiabetesTypeReasons] = useState<string[]>([]);
+  const [manualDiabetesType, setManualDiabetesType] = useState<string>('');
   const { toast } = useToast();
+
+  // Helper component to render field with confidence indicator
+  const FieldWithConfidence = ({ 
+    fieldName, 
+    label, 
+    type = 'text', 
+    placeholder,
+    skipIfNotKnown = false // Skip rendering for certain fields based on user preference
+  }: { 
+    fieldName: keyof HealthData; 
+    label: string; 
+    type?: string; 
+    placeholder?: string;
+    skipIfNotKnown?: boolean;
+  }) => {
+    // Skip rendering if this is A1c and user selected "I don't know"
+    if (skipIfNotKnown && fieldName === 'lastA1c' && !healthData.lastA1cKnown) {
+      return null;
+    }
+    
+    const metadata = fieldMetadata[fieldName];
+    const isExtracted = extractedFields.has(fieldName);
+    const isLowConfidence = metadata && metadata.confidence < 0.5;
+    const fieldValue = healthData[fieldName];
+    
+    // Skip if field is boolean (like lastA1cKnown)
+    if (typeof fieldValue === 'boolean') {
+      return null;
+    }
+    
+    return (
+      <div>
+        <div className="flex items-center gap-1 mb-1">
+          <Label className="text-xs text-muted-foreground">
+            {label} {isExtracted ? '✓' : '*'}
+          </Label>
+          {metadata && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs">
+                <div className="text-xs space-y-1">
+                  <div>Source: <span className="font-semibold">{metadata.source.toUpperCase()}</span></div>
+                  <div>Confidence: <span className="font-semibold">{(metadata.confidence * 100).toFixed(0)}%</span></div>
+                  {isLowConfidence && (
+                    <div className="text-yellow-400">⚠️ Low confidence - please verify</div>
+                  )}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+        <Input
+          type={type}
+          value={fieldValue as string}
+          onChange={(e) => handleInputChange(fieldName, e.target.value)}
+          className={`h-9 border-input text-foreground text-sm ${
+            isExtracted 
+              ? isLowConfidence 
+                ? 'bg-yellow-500/10 border-yellow-500/30' 
+                : 'bg-emerald-500/10 border-emerald-500/30'
+              : 'bg-secondary'
+          }`}
+          placeholder={placeholder}
+          data-testid={`input-${fieldName}`}
+        />
+        {isExtracted && (
+          <p className={`text-xs mt-1 ${
+            isLowConfidence 
+              ? 'text-yellow-600 dark:text-yellow-400'
+              : 'text-emerald-600 dark:text-emerald-400'
+          }`}>
+            {isLowConfidence ? '⚠️ Auto-filled (low confidence)' : '✓ Auto-filled from report'}
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  // DEBUG: Log whenever healthData changes
+  useEffect(() => {
+    console.log('====== healthData state changed ======');
+    console.log('New healthData:', healthData);
+    console.log('extractedFields:', Array.from(extractedFields));
+    console.log('extractionFailed:', extractionFailed);
+    console.log('showParser:', showParser);
+    console.log('======================================');
+  }, [healthData, extractedFields, extractionFailed, showParser]);
+
+  // CRITICAL DEBUG: Log when Step 3 form renders
+  useEffect(() => {
+    if (step === 3 && showParser) {
+      console.log('🎯🎯🎯 STEP 3 FORM IS NOW VISIBLE 🎯🎯🎯');
+      console.log('Current healthData in form:');
+      console.log('  name:', healthData.name, '(length:', healthData.name?.length, ')');
+      console.log('  dob:', healthData.dob, '(length:', healthData.dob?.length, ')');
+      console.log('  weight:', healthData.weight, '(length:', healthData.weight?.length, ')');
+      console.log('  height:', healthData.height, '(length:', healthData.height?.length, ')');
+      console.log('  typicalInsulin:', healthData.typicalInsulin, '(length:', healthData.typicalInsulin?.length, ')');
+      console.log('extractedFields Set contains:');
+      console.log('  has name?', extractedFields.has('name'));
+      console.log('  has weight?', extractedFields.has('weight'));
+      console.log('  has typicalInsulin?', extractedFields.has('typicalInsulin'));
+      console.log('  All fields:', Array.from(extractedFields));
+      console.log('🚨 IF FIELDS ARE EMPTY STRINGS BUT extractedFields HAS THEM, STATE UPDATE BUG!');
+      console.log('🚨 IF FIELDS HAVE VALUES BUT extractedFields IS EMPTY, THRESHOLD ISSUE!');
+    }
+  }, [step, showParser, healthData, extractedFields]);
 
   // Debug logging
   useEffect(() => {
@@ -95,12 +216,41 @@ export default function OnboardingModal({ isOpen, onClose, onComplete, onSkip, i
           formData.append('file', file);
           
           const token = localStorage.getItem('token');
+          
+          // STEP 1: Upload file to server first
+          console.log('📤 Step 1: Uploading file...');
+          const uploadFormData = new FormData();
+          uploadFormData.append('file', file);
+          uploadFormData.append('skipDbSave', 'true'); // Skip database save during onboarding
+          
+          const uploadResponse = await fetch('/api/reports/upload', {
+            method: 'POST',
+            headers: {
+              'Authorization': token ? `Bearer ${token}` : '',
+            },
+            body: uploadFormData,
+          });
+          
+          if (!uploadResponse.ok) {
+            const uploadErrorData = await uploadResponse.json().catch(() => ({ message: 'Upload failed' }));
+            console.error('❌ Upload failed:', uploadResponse.status, uploadErrorData);
+            throw new Error(`Upload failed: ${uploadErrorData.message}`);
+          }
+          
+          const uploadData = await uploadResponse.json();
+          console.log('✅ Upload successful:', uploadData);
+          
+          // STEP 2: Parse file for data extraction
+          console.log('📄 Step 2: Parsing file for data extraction...');
+          const parseFormData = new FormData();
+          parseFormData.append('file', file);
+          
           const response = await fetch('/api/reports/parse', {
             method: 'POST',
             headers: {
               'Authorization': token ? `Bearer ${token}` : '',
             },
-            body: formData,
+            body: parseFormData,
           });
           
           if (!response.ok) {
@@ -108,62 +258,116 @@ export default function OnboardingModal({ isOpen, onClose, onComplete, onSkip, i
           }
           
           const parsedData = await response.json();
+          
+          // CRITICAL: Store raw server response for debugging UI
+          setDebugServerResponse(parsedData);
+          
           console.log('=== Parsed data received ===');
           console.log('Parsed data:', parsedData);
+          console.log('Raw JSON:', JSON.stringify(parsedData, null, 2));
+          console.log('Response keys:', Object.keys(parsedData));
+          console.log('Number of keys:', Object.keys(parsedData).length);
           
-          // Track which fields were successfully extracted (confidence >= 0.6)
+          // Log each field in detail
+          Object.entries(parsedData).forEach(([key, field]: [string, any]) => {
+            console.log(`\n--- Field: ${key} ---`);
+            console.log('  Type:', typeof field);
+            console.log('  Is object:', typeof field === 'object');
+            console.log('  Is null:', field === null);
+            console.log('  Raw value:', field);
+            if (typeof field === 'object' && field !== null) {
+              console.log('  field.value:', field.value);
+              console.log('  field.confidence:', field.confidence);
+              console.log(`  SUMMARY: value='${field.value}', confidence=${field.confidence}`);
+            }
+          });
+          
+          // Track which fields were successfully extracted (confidence >= 0.35)
           const extracted = new Set<keyof HealthData>();
-          const CONFIDENCE_THRESHOLD = 0.6;
+          const metadata: Record<string, { confidence: number; source: string }> = {};
+          const CONFIDENCE_THRESHOLD = 0.35; // Lowered from 0.4 to 0.35 for more inclusive extraction
           
           // Check if extraction completely failed
           const hasAnyData = Object.values(parsedData).some(
             (field: any) => field?.value && field?.confidence >= CONFIDENCE_THRESHOLD
           );
           
-          if (!hasAnyData) {
-            console.warn('No data could be extracted from the report');
-            setExtractionFailed(true);
-          } else {
-            setExtractionFailed(false);
-          }
+          console.log('Has any valid extracted data:', hasAnyData);
           
           // Build updated data object from extracted fields
-          const updatedData = { ...healthData };
+          // Start with a fresh object to avoid stale state issues
+          const updatedData: HealthData = {
+            name: '',
+            dob: '',
+            weight: '',
+            height: '',
+            lastA1c: '',
+            medications: '',
+            typicalInsulin: '',
+            targetRange: '70-180',
+            lastA1cKnown: true,
+          };
           
-          if (parsedData.name?.value && parsedData.name.confidence >= CONFIDENCE_THRESHOLD) {
-            updatedData.name = parsedData.name.value;
-            extracted.add('name');
-          }
-          if (parsedData.dob?.value && parsedData.dob.confidence >= CONFIDENCE_THRESHOLD) {
-            updatedData.dob = parsedData.dob.value;
-            extracted.add('dob');
-          }
-          if (parsedData.weight?.value && parsedData.weight.confidence >= CONFIDENCE_THRESHOLD) {
-            updatedData.weight = parsedData.weight.value;
-            extracted.add('weight');
-          }
-          if (parsedData.height?.value && parsedData.height.confidence >= CONFIDENCE_THRESHOLD) {
-            updatedData.height = parsedData.height.value;
-            extracted.add('height');
-          }
-          if (parsedData.lastA1c?.value && parsedData.lastA1c.confidence >= CONFIDENCE_THRESHOLD) {
-            updatedData.lastA1c = parsedData.lastA1c.value;
-            extracted.add('lastA1c');
-          }
-          if (parsedData.medications?.value && parsedData.medications.confidence >= CONFIDENCE_THRESHOLD) {
-            updatedData.medications = parsedData.medications.value;
-            extracted.add('medications');
-          }
-          if (parsedData.typicalInsulin?.value && parsedData.typicalInsulin.confidence >= CONFIDENCE_THRESHOLD) {
-            updatedData.typicalInsulin = parsedData.typicalInsulin.value;
-            extracted.add('typicalInsulin');
-          }
-          if (parsedData.targetRange?.value && parsedData.targetRange.confidence >= CONFIDENCE_THRESHOLD) {
-            updatedData.targetRange = parsedData.targetRange.value;
-            extracted.add('targetRange');
-          }
+          console.log('Processing parsed fields...');
+          console.log('CONFIDENCE_THRESHOLD:', CONFIDENCE_THRESHOLD);
           
-          setExtractedFields(extracted);
+          // Helper to extract and track field
+          const processField = (fieldName: keyof HealthData, apiFieldName: string, formatValue?: (v: any) => string) => {
+            // Skip lastA1cKnown field - it's not extracted from API
+            if (fieldName === 'lastA1cKnown') {
+              return;
+            }
+            
+            const fieldData = parsedData[apiFieldName];
+            console.log(`\n=== Processing ${fieldName.toUpperCase()} ===`);
+            console.log(`${apiFieldName} exists:`, !!fieldData);
+            
+            if (fieldData && typeof fieldData === 'object') {
+              console.log(`${apiFieldName}.value:`, fieldData.value);
+              console.log(`${apiFieldName}.confidence:`, fieldData.confidence);
+              console.log(`${apiFieldName}.source:`, fieldData.source);
+              
+              if (fieldData.value !== null && fieldData.value !== undefined && fieldData.confidence >= CONFIDENCE_THRESHOLD) {
+                const value = formatValue ? formatValue(fieldData.value) : String(fieldData.value).trim();
+                (updatedData as any)[fieldName] = value;
+                extracted.add(fieldName);
+                metadata[fieldName] = {
+                  confidence: fieldData.confidence,
+                  source: fieldData.source || 'ml'
+                };
+                console.log(`✅ ${fieldName} extracted: '${value}' (confidence: ${fieldData.confidence}, source: ${fieldData.source})`);
+              } else {
+                console.log(`❌ ${fieldName} NOT extracted - failed confidence or value check`);
+              }
+            } else {
+              console.log(`❌ ${fieldName} field missing or not an object`);
+            }
+          };
+          
+          // Process all fields with new API format
+          processField('name', 'name');
+          processField('dob', 'dob');
+          processField('weight', 'weight_kg'); // API returns weight_kg
+          processField('height', 'height_cm'); // API returns height_cm
+          processField('lastA1c', 'a1c_percent'); // API returns a1c_percent
+          processField('medications', 'medications');
+          // Try to extract insulin from insulin_regimen or typical_daily_insulin_units
+          if (!updatedData.typicalInsulin) {
+            const insulinRegimen = parsedData['insulin_regimen'];
+            if (insulinRegimen && insulinRegimen.value && insulinRegimen.confidence >= CONFIDENCE_THRESHOLD) {
+              // Try to extract numeric value from regimen (e.g., "24 units" -> "24")
+              const match = String(insulinRegimen.value).match(/\d+/);
+              if (match) {
+                updatedData.typicalInsulin = match[0];
+                extracted.add('typicalInsulin');
+                metadata['typicalInsulin'] = {
+                  confidence: insulinRegimen.confidence,
+                  source: insulinRegimen.source || 'regex'
+                };
+              }
+            }
+          }
+          processField('targetRange', 'targetRange');
           
           // Save extracted name to localStorage for dashboard welcome message
           if (parsedData.name?.value && parsedData.name.confidence >= CONFIDENCE_THRESHOLD) {
@@ -171,26 +375,65 @@ export default function OnboardingModal({ isOpen, onClose, onComplete, onSkip, i
             console.log('Saved extracted patient name:', parsedData.name.value);
           }
           
-          console.log('=== Updated health data ===');
-          console.log('Updated data:', updatedData);
-          console.log('Extracted fields:', Array.from(extracted));
+          // Extract diabetes type if available
+          if (parsedData.diabetes_type) {
+            const dtValue = parsedData.diabetes_type.value;
+            const dtConfidence = parsedData.diabetes_type.confidence || 0;
+            const dtReasons = parsedData.diabetes_type.reasons || [];
+            
+            console.log('Diabetes type detected:', dtValue, 'confidence:', dtConfidence);
+            setDiabetesType(dtValue);
+            setDiabetesTypeConfidence(dtConfidence);
+            setDiabetesTypeReasons(dtReasons);
+            setManualDiabetesType(dtValue); // Pre-select the detected type
+          }
           
+          console.log('=== Final Extraction Summary ===');
+          console.log('Total fields extracted:', extracted.size);
+          console.log('Extracted fields:', Array.from(extracted).join(', '));
+          console.log('Field metadata:', metadata);
+          console.log('Updated health data:', updatedData);
+          console.log('About to update state...');
+          
+          // CRITICAL: Update state in specific order to prevent race conditions
+          // React 18+ will batch these automatically, but order matters for debugging
+          
+          // Step 1: Set extracted fields first (for visual indicators)
+          setExtractedFields(extracted);
+          
+          // Step 2: Set field metadata (confidence and source)
+          setFieldMetadata(metadata);
+          
+          // Step 3: Set extraction failed flag
+          setExtractionFailed(extracted.size === 0);
+          
+          // Step 4: Set health data (this triggers form input values to update)
           setHealthData(updatedData);
-          setShowParser(true); // Show confirmation form
           
-          // Count how many fields were extracted
+          console.log('State updated, current healthData should be:', updatedData);
+          console.log('Extracted fields set should be:', Array.from(extracted));
+          
+          // Step 4: Show parser form LAST - after all data is set
+          setShowParser(true);
+          
           const extractedFieldCount = extracted.size;
-          
-          toast({
-            title: extractionFailed ? t('onboarding.messages.parsingFailed') : t('onboarding.messages.parsingSuccess'),
-            description: extractionFailed 
-              ? 'Could not extract data from report. Please fill in the fields manually.'
-              : `Extracted ${extractedFieldCount} field(s) from your report. Please review and confirm.`,
-            variant: extractionFailed ? 'destructive' : 'default',
-          });
+          if (extractedFieldCount === 0) {
+            toast({
+              title: t('onboarding.messages.parsingFailed'),
+              description: 'No fields could be automatically extracted. Please fill in your information manually.',
+              variant: 'default',
+            });
+          } else {
+            toast({
+              title: t('onboarding.messages.parsingSuccess'),
+              description: t('onboarding.messages.parsingSuccessDesc', { count: extractedFieldCount }),
+              variant: 'default',
+            });
+          }
         } catch (error) {
           console.error('PDF parsing error:', error);
-          setShowParser(true); // Still show form but without pre-filled data
+          setShowParser(true);
+          setExtractionFailed(true);
           toast({
             title: t('onboarding.messages.parsingFailed'),
             description: 'Could not extract data from report. Please fill in the fields manually.',
@@ -207,7 +450,7 @@ export default function OnboardingModal({ isOpen, onClose, onComplete, onSkip, i
         variant: 'destructive',
       });
     }
-  }, [toast, t, healthData]);
+  }, [toast, t]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -235,8 +478,9 @@ export default function OnboardingModal({ isOpen, onClose, onComplete, onSkip, i
   };
 
   const handleUseSample = () => {
-    setShowParser(true);
-    setHealthData({
+    console.log('📊 Using sample/demo data');
+    
+    const sampleData: HealthData = {
       name: 'Jane Smith',
       dob: '1985-03-20',
       weight: '68',
@@ -245,6 +489,25 @@ export default function OnboardingModal({ isOpen, onClose, onComplete, onSkip, i
       medications: 'Insulin Glargine',
       typicalInsulin: '18',
       targetRange: '70-180',
+    };
+    
+    // Mark all fields as extracted
+    const allFields = new Set<keyof HealthData>([
+      'name', 'dob', 'weight', 'height', 'lastA1c', 'medications', 'typicalInsulin', 'targetRange'
+    ]);
+    
+    setExtractedFields(allFields);
+    setExtractionFailed(false);
+    setHealthData(sampleData);
+    setShowParser(true);
+    
+    console.log('Sample data set:', sampleData);
+    console.log('Extracted fields:', Array.from(allFields));
+    
+    toast({
+      title: 'Demo Data Loaded',
+      description: 'Sample health data has been populated. You can edit any field.',
+      variant: 'default',
     });
   };
 
@@ -308,17 +571,142 @@ export default function OnboardingModal({ isOpen, onClose, onComplete, onSkip, i
               const parsedData = await parseResponse.json();
               
               // Update health data with parsed values
-              setHealthData(prev => ({
-                ...prev,
-                name: parsedData.name || data.patient.name || prev.name,
-                dob: parsedData.dob || prev.dob,
-                weight: parsedData.weight || prev.weight,
-                height: parsedData.height || prev.height,
-                lastA1c: parsedData.lastA1c || prev.lastA1c,
-                medications: parsedData.medications || prev.medications,
-                typicalInsulin: parsedData.typicalInsulin || prev.typicalInsulin,
-                targetRange: parsedData.targetRange || prev.targetRange,
-              }));
+              // Handle both { value, confidence } format and direct string values
+              const extractValue = (field: any) => {
+                if (!field) return '';
+                return field.value || field;
+              };
+              
+              const CONFIDENCE_THRESHOLD = 0.4; // Match main upload threshold
+              const extracted = new Set<keyof HealthData>();
+              
+              // Start with a fresh object to avoid stale state issues
+              const updatedData: HealthData = {
+                name: '',
+                dob: '',
+                weight: '',
+                height: '',
+                lastA1c: '',
+                medications: '',
+                typicalInsulin: '',
+                targetRange: '70-180',
+              };
+              
+              if (parsedData.name) {
+                const value = extractValue(parsedData.name);
+                const confidence = parsedData.name?.confidence || 1;
+                if (value && confidence >= CONFIDENCE_THRESHOLD) {
+                  updatedData.name = value;
+                  extracted.add('name');
+                }
+              }
+              if (!updatedData.name && data.patient.name) {
+                updatedData.name = data.patient.name;
+                extracted.add('name');
+              }
+              
+              if (parsedData.dob) {
+                const value = extractValue(parsedData.dob);
+                const confidence = parsedData.dob?.confidence || 1;
+                if (value && confidence >= CONFIDENCE_THRESHOLD) {
+                  updatedData.dob = value;
+                  extracted.add('dob');
+                }
+              }
+              
+              if (parsedData.weight_kg) {
+                const value = extractValue(parsedData.weight_kg);
+                const confidence = parsedData.weight_kg?.confidence || 1;
+                if (value && confidence >= CONFIDENCE_THRESHOLD) {
+                  updatedData.weight = value;
+                  extracted.add('weight');
+                }
+              }
+              
+              if (parsedData.height_cm) {
+                const value = extractValue(parsedData.height_cm);
+                const confidence = parsedData.height_cm?.confidence || 1;
+                if (value && confidence >= CONFIDENCE_THRESHOLD) {
+                  updatedData.height = value;
+                  extracted.add('height');
+                }
+              }
+              
+              if (parsedData.a1c_percent) {
+                const value = extractValue(parsedData.a1c_percent);
+                const confidence = parsedData.a1c_percent?.confidence || 1;
+                if (value && confidence >= CONFIDENCE_THRESHOLD) {
+                  updatedData.lastA1c = value;
+                  extracted.add('lastA1c');
+                }
+              }
+              
+              if (parsedData.medications) {
+                const value = extractValue(parsedData.medications);
+                const confidence = parsedData.medications?.confidence || 1;
+                if (value && confidence >= CONFIDENCE_THRESHOLD) {
+                  updatedData.medications = value;
+                  extracted.add('medications');
+                }
+              }
+              
+              if (parsedData.insulin_regimen) {
+                const value = extractValue(parsedData.insulin_regimen);
+                const confidence = parsedData.insulin_regimen?.confidence || 1;
+                console.log('Insulin extraction - Value:', value, 'Confidence:', confidence, 'Threshold:', CONFIDENCE_THRESHOLD);
+                if (value && confidence >= CONFIDENCE_THRESHOLD) {
+                  // Try to extract numeric value from regimen (e.g., "24 units" -> "24")
+                  const match = String(value).match(/\d+/);
+                  if (match) {
+                    updatedData.typicalInsulin = match[0];
+                    extracted.add('typicalInsulin');
+                    console.log('✅ Insulin data extracted successfully:', match[0]);
+                  }
+                } else {
+                  console.log('⚠️ Insulin data below confidence threshold or empty');
+                }
+              }
+              
+              if (parsedData.targetRange) {
+                const value = extractValue(parsedData.targetRange);
+                const confidence = parsedData.targetRange?.confidence || 1;
+                if (value && confidence >= CONFIDENCE_THRESHOLD) {
+                  updatedData.targetRange = value;
+                  extracted.add('targetRange');
+                }
+              }
+              
+              setHealthData(updatedData);
+              setExtractedFields(extracted);
+              
+              // Log extraction summary
+              console.log('=== Extraction Summary ===');
+              console.log('Total fields extracted:', extracted.size);
+              console.log('Extracted fields:', Array.from(extracted).join(', '));
+              console.log('Updated health data:', updatedData);
+              
+              // Show toast with extraction results
+              if (extracted.size > 0) {
+                toast({
+                  title: t('onboarding.messages.parsingSuccess'),
+                  description: t('onboarding.messages.parsingSuccessDesc', { count: extracted.size }),
+                });
+              } else {
+                toast({
+                  title: t('onboarding.messages.parsingPartial'),
+                  description: 'No fields could be automatically extracted. Please fill in manually.',
+                  variant: 'default',
+                });
+              }
+            } else {
+              console.error('Parse response not OK:', parseResponse.status, parseResponse.statusText);
+              const errorText = await parseResponse.text();
+              console.error('Parse error details:', errorText);
+              toast({
+                title: t('onboarding.messages.parsingFailed'),
+                description: 'Could not parse the report. Please fill in the fields manually.',
+                variant: 'destructive',
+              });
             }
           }
         } catch (parseError) {
@@ -387,6 +775,15 @@ export default function OnboardingModal({ isOpen, onClose, onComplete, onSkip, i
       });
       return false;
     }
+    // A1c is optional if user selects "I don't know my HbA1c"
+    if (healthData.lastA1cKnown && (!healthData.lastA1c || parseFloat(healthData.lastA1c) <= 0)) {
+      toast({
+        title: 'HbA1c Required',
+        description: 'Please enter your HbA1c value (e.g., 7.2) or select "I don\'t know my HbA1c" to skip.',
+        variant: 'destructive',
+      });
+      return false;
+    }
     return true;
   };
 
@@ -407,9 +804,10 @@ export default function OnboardingModal({ isOpen, onClose, onComplete, onSkip, i
           weight: parseFloat(healthData.weight),
           height: parseFloat(healthData.height),
           lastA1c: healthData.lastA1c ? parseFloat(healthData.lastA1c) : undefined,
-          medications: healthData.medications || undefined,
+          medications: healthData.medications ? [healthData.medications] : undefined,
           typicalInsulin: healthData.typicalInsulin ? parseFloat(healthData.typicalInsulin) : undefined,
           targetRange: healthData.targetRange || undefined,
+          diabetesType: manualDiabetesType || undefined, // Save selected diabetes type
         };
 
         console.log('=== Saving Profile Data ===');
@@ -558,7 +956,50 @@ export default function OnboardingModal({ isOpen, onClose, onComplete, onSkip, i
     setHealthData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Handle "Upload Another Report" - reset Step 3 and go back to upload
+  const handleUploadAnotherReport = () => {
+    console.log('🔄 User clicked "Upload Another Report" - resetting Step 3...');
+    
+    // Reset all parsed data
+    setHealthData({
+      name: '',
+      dob: '',
+      weight: '',
+      height: '',
+      lastA1c: '',
+      medications: '',
+      typicalInsulin: '',
+      targetRange: '70-180',
+      lastA1cKnown: true,
+    });
+    
+    // Clear extracted fields and metadata
+    setExtractedFields(new Set());
+    setFieldMetadata({});
+    setExtractionFailed(false);
+    setDebugServerResponse(null);
+    setUploadedFile(null);
+    
+    // Reset diabetes type detection
+    setDiabetesType('');
+    setDiabetesTypeConfidence(0);
+    setDiabetesTypeReasons([]);
+    setManualDiabetesType('');
+    
+    // Reset parser view
+    setShowParser(false);
+    
+    // Show toast feedback
+    toast({
+      title: 'Upload Reset',
+      description: 'Previous report discarded. Please upload a new medical report.',
+    });
+    
+    console.log('✅ Step 3 reset complete - ready for new upload');
+  };
+
   return (
+    <TooltipProvider>
     <Dialog open={isOpen} onOpenChange={isMandatory ? undefined : onClose}>
       <DialogContent 
         className="glass-card"
@@ -868,155 +1309,234 @@ export default function OnboardingModal({ isOpen, onClose, onComplete, onSkip, i
 
         {/* Step 3: Parser Results */}
         {step === 3 && showParser && (
-          <div className="flex flex-col flex-1">
-            <h2 className="text-xl font-bold mb-2 text-foreground">{t('onboarding.confirm.title')}</h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              {uploadedFile ? 
-                `Review the extracted data from "${uploadedFile.name}". Fields highlighted are auto-filled. Please confirm or edit.` : 
-                'Please review and confirm your information.'}
-            </p>
-            
-            {/* Extraction failure banner */}
-            {extractionFailed && (
-              <div className="mb-4 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
-                <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                  ⚠️ We couldn't extract data from this report. Please fill in your details manually.
+          <div className="flex flex-col flex-1 h-full overflow-hidden">
+            {/* Header - fixed */}
+            <div className="flex-shrink-0 flex items-start justify-between mb-3 pb-3 border-b border-border">
+              <div className="min-w-0 flex-1 pr-3">
+                <h2 className="text-lg font-bold text-foreground">{t('onboarding.confirm.title')}</h2>
+                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                  {uploadedFile ? 
+                    `Review the extracted data from "${uploadedFile.name}". Fields highlighted are auto-filled. Please confirm or edit.` : 
+                    'Please review and confirm your information.'}
                 </p>
               </div>
-            )}
+              {uploadedFile && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleUploadAnotherReport}
+                  className="text-xs text-muted-foreground hover:text-foreground whitespace-nowrap flex-shrink-0 ml-2 h-8"
+                  data-testid="button-upload-another"
+                  title="Upload a different medical report"
+                >
+                  ↺ Upload Different
+                </Button>
+              )}
+            </div>
             
-            <div className="flex-1 overflow-y-auto space-y-3">
+            {/* Body - scrollable */}
+            <div className="flex-1 overflow-y-auto pr-2 space-y-2">
               <div className="grid grid-cols-2 gap-3">
+                <FieldWithConfidence 
+                  fieldName="name" 
+                  label={t('onboarding.form.name')} 
+                  placeholder="Enter your full name" 
+                />
+                <FieldWithConfidence 
+                  fieldName="dob" 
+                  label={t('onboarding.form.dob')} 
+                  type="date" 
+                />
+                <FieldWithConfidence 
+                  fieldName="weight" 
+                  label={`${t('onboarding.form.weight')} (kg)`} 
+                  type="number" 
+                  placeholder="e.g., 70" 
+                />
+                <FieldWithConfidence 
+                  fieldName="height" 
+                  label={`${t('onboarding.form.height')} (cm)`} 
+                  type="number" 
+                  placeholder="e.g., 170" 
+                />
+                {/* A1c Field with Special UX */}
                 <div>
-                  <Label className="text-xs text-muted-foreground mb-1">
-                    {t('onboarding.form.name')} {extractedFields.has('name') ? '✓' : '*'}
-                  </Label>
-                  <Input
-                    value={healthData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    className={`h-9 border-input text-foreground text-sm ${
-                      extractedFields.has('name') ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-secondary'
-                    }`}
-                    placeholder="Enter your full name"
-                    data-testid="input-name"
-                  />
-                  {extractedFields.has('name') && (
-                    <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">✓ Auto-filled from report</p>
-                  )}
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-1">
-                    {t('onboarding.form.dob')} {extractedFields.has('dob') ? '✓' : '*'}
-                  </Label>
-                  <Input
-                    type="date"
-                    value={healthData.dob}
-                    onChange={(e) => handleInputChange('dob', e.target.value)}
-                    className={`h-9 border-input text-foreground text-sm ${
-                      extractedFields.has('dob') ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-secondary'
-                    }`}
-                    data-testid="input-dob"
-                  />
-                  {extractedFields.has('dob') && (
-                    <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">✓ Auto-filled from report</p>
-                  )}
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-1">
-                    {t('onboarding.form.weight')} (kg) {extractedFields.has('weight') ? '✓' : '*'}
-                  </Label>
-                  <Input
-                    type="number"
-                    value={healthData.weight}
-                    onChange={(e) => handleInputChange('weight', e.target.value)}
-                    className={`h-9 border-input text-foreground text-sm ${
-                      extractedFields.has('weight') ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-secondary'
-                    }`}
-                    placeholder="e.g., 70"
-                    data-testid="input-weight"
-                  />
-                  {extractedFields.has('weight') && (
-                    <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">✓ Auto-filled from report</p>
-                  )}
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-1">
-                    {t('onboarding.form.height')} (cm) {extractedFields.has('height') ? '✓' : '*'}
-                  </Label>
+                  <div className="flex items-center gap-1 mb-1">
+                    <Label className="text-xs text-muted-foreground">
+                      Last HbA1c (%)
+                      {healthData.lastA1cKnown ? '*' : ''}
+                    </Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs">
+                        <div className="text-xs space-y-2">
+                          <div className="font-semibold">What is HbA1c?</div>
+                          <div>HbA1c reflects your average blood sugar over the last 3 months.</div>
+                          <div>It is usually written like "7.2%" in medical reports.</div>
+                          <div>If you don't know your HbA1c, you can skip this field.</div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                   <Input
                     type="number"
-                    value={healthData.height}
-                    onChange={(e) => handleInputChange('height', e.target.value)}
-                    className={`h-9 border-input text-foreground text-sm ${
-                      extractedFields.has('height') ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-secondary'
-                    }`}
-                    placeholder="e.g., 170"
-                    data-testid="input-height"
-                  />
-                  {extractedFields.has('height') && (
-                    <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">✓ Auto-filled from report</p>
-                  )}
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-1">
-                    {t('onboarding.form.a1c')} (%) {extractedFields.has('lastA1c') ? '✓' : ''}
-                  </Label>
-                  <Input
-                    type="number"
-                    step="0.1"
                     value={healthData.lastA1c}
                     onChange={(e) => handleInputChange('lastA1c', e.target.value)}
+                    disabled={!healthData.lastA1cKnown}
                     className={`h-9 border-input text-foreground text-sm ${
-                      extractedFields.has('lastA1c') ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-secondary'
+                      !healthData.lastA1cKnown ? 'opacity-50 bg-gray-500/10 cursor-not-allowed' : 'bg-secondary'
                     }`}
                     placeholder="e.g., 7.2"
                     data-testid="input-a1c"
                   />
+                  <div className="flex items-center gap-2 mt-2">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs text-muted-foreground hover:text-foreground">
+                      <input
+                        type="checkbox"
+                        checked={!healthData.lastA1cKnown}
+                        onChange={(e) => {
+                          setHealthData(prev => ({ 
+                            ...prev, 
+                            lastA1cKnown: !e.target.checked,
+                            lastA1c: !e.target.checked ? prev.lastA1c : '' // Clear if "don't know" is checked
+                          }));
+                        }}
+                        className="rounded"
+                        data-testid="checkbox-a1c-unknown"
+                      />
+                      <span>I don't know my HbA1c</span>
+                    </label>
+                  </div>
                 </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-1">
-                    {t('onboarding.form.insulin')} (U) {extractedFields.has('typicalInsulin') ? '✓' : ''}
-                  </Label>
-                  <Input
-                    type="number"
-                    value={healthData.typicalInsulin}
-                    onChange={(e) => handleInputChange('typicalInsulin', e.target.value)}
-                    className={`h-9 border-input text-foreground text-sm ${
-                      extractedFields.has('typicalInsulin') ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-secondary'
-                    }`}
-                    placeholder="Daily units"
-                    data-testid="input-insulin"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground mb-1">
-                  {t('onboarding.form.medications')} {extractedFields.has('medications') ? '✓' : ''}
-                </Label>
-                <Input
-                  value={healthData.medications}
-                  onChange={(e) => handleInputChange('medications', e.target.value)}
-                  className={`h-9 border-input text-foreground text-sm ${
-                    extractedFields.has('medications') ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-secondary'
-                  }`}
-                  placeholder="List your current medications"
-                  data-testid="input-medications"
+                <FieldWithConfidence 
+                  fieldName="typicalInsulin" 
+                  label={`${t('onboarding.form.insulin')} (U)`} 
+                  type="number" 
+                  placeholder="Daily units" 
                 />
               </div>
+              <FieldWithConfidence 
+                fieldName="medications" 
+                label={t('onboarding.form.medications')} 
+                placeholder="List your current medications" 
+              />
               
-              <div className="text-xs text-muted-foreground mt-2">
-                <span className="text-emerald-400">✓</span> = Auto-filled from report | 
-                <span className="text-red-400">*</span> = Required field
+              {/* Diabetes Type Detection */}
+              {diabetesType && (
+                <div className="mt-4 p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                      <Activity className="w-5 h-5 text-blue-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="text-sm font-semibold text-foreground">Detected Diabetes Type</h3>
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-600 dark:text-blue-400">
+                          {diabetesType}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {(diabetesTypeConfidence * 100).toFixed(0)}% confidence
+                        </span>
+                      </div>
+                      
+                      {diabetesTypeReasons.length > 0 && (
+                        <div className="mb-3">
+                          <p className="text-xs text-muted-foreground mb-1">Why we think this:</p>
+                          <ul className="text-xs space-y-0.5">
+                            {diabetesTypeReasons.slice(0, 3).map((reason, idx) => (
+                              <li key={idx} className="text-muted-foreground flex items-start gap-1">
+                                <span className="text-blue-500 flex-shrink-0">•</span>
+                                <span>{reason}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      <div className="mt-3">
+                        <Label className="text-xs text-muted-foreground mb-2 block">Confirm or correct your diabetes type:</Label>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {['Type 1', 'Type 2', 'Gestational', 'Other', 'Unknown'].map((type) => (
+                            <label
+                              key={type}
+                              className={`flex items-center gap-1.5 p-1.5 rounded-md border-2 cursor-pointer transition-all text-xs ${
+                                manualDiabetesType === type
+                                  ? 'border-blue-500 bg-blue-500/10'
+                                  : 'border-border hover:border-blue-500/50 bg-secondary/50'
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name="diabetesType"
+                                value={type}
+                                checked={manualDiabetesType === type}
+                                onChange={(e) => setManualDiabetesType(e.target.value)}
+                                className="w-3 h-3 flex-shrink-0"
+                              />
+                              <span className="font-medium text-foreground leading-tight">{type}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Manual Diabetes Type Selection (if not auto-detected) */}
+              {!diabetesType && (
+                <div className="p-3 rounded-lg bg-secondary/50 border border-border">
+                  <div className="mb-2">
+                    <Label className="text-xs text-foreground mb-1.5 block">Select your diabetes type (optional):</Label>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      This helps us provide more personalized insulin recommendations.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {['Type 1', 'Type 2', 'Gestational', 'Other', 'Unknown'].map((type) => (
+                      <label
+                        key={type}
+                        className={`flex items-center gap-1.5 p-1.5 rounded-md border-2 cursor-pointer transition-all text-xs ${
+                          manualDiabetesType === type
+                            ? 'border-primary bg-primary/10'
+                            : 'border-border hover:border-primary/50 bg-secondary'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="diabetesType"
+                          value={type}
+                          checked={manualDiabetesType === type}
+                          onChange={(e) => setManualDiabetesType(e.target.value)}
+                          className="w-3 h-3 flex-shrink-0"
+                        />
+                        <span className="font-medium text-foreground leading-tight">{type}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <div className="text-xs text-muted-foreground mt-1">
+                <span className="text-emerald-400">✓</span> = Auto-filled | 
+                <span className="text-yellow-400">⚠️</span> = Verify |
+                <span className="text-red-400">*</span> = Required
               </div>
             </div>
 
-            <Button
-              onClick={handleNextStep}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground mt-4"
-              data-testid="button-confirm"
-            >
-              {t('onboarding.confirm.button')}
-            </Button>
+            {/* Footer - fixed */}
+            <div className="flex-shrink-0 border-t border-border pt-2 mt-2">
+              <Button
+                onClick={handleNextStep}
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-9 text-sm"
+                data-testid="button-confirm"
+                disabled={!healthData.name || !healthData.dob || !healthData.weight || !healthData.height || (healthData.lastA1cKnown && !healthData.lastA1c)}
+              >
+                {t('onboarding.confirm.button')}
+              </Button>
+            </div>
           </div>
         )}
 
@@ -1122,5 +1642,6 @@ export default function OnboardingModal({ isOpen, onClose, onComplete, onSkip, i
         )}
       </DialogContent>
     </Dialog>
+    </TooltipProvider>
   );
 }

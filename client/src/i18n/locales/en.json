@@ -62,17 +62,115 @@
     "reportsAnalytics": "Reports & Analytics",
     "messages": "Messages",
     "users": "Users",
-    "reports": "Reports"
+    "reports": "Reports",
+    "sections": {
+      "health": "HEALTH",
+      "medical": "MEDICAL",
+      "ai": "AI",
+      "care": "CARE",
+      "account": "ACCOUNT",
+      "clinical": "CLINICAL",
+      "patients": "PATIENTS",
+      "analytics": "ANALYTICS",
+      "communication": "COMMUNICATION",
+      "dashboard": "DASHBOARD",
+      "management": "MANAGEMENT",
+      "settings": "SETTINGS"
+    }
   },
   "dashboard": {
     "title": "Dashboard",
     "welcomeBack": "Welcome back, {{name}}",
     "healthOverview": "Here's your health overview for today",
     "loadingData": "Loading your health data...",
+    "aiSummary": {
+      "title": "AI Summary for Today",
+      "lastUpdated": "Last updated:",
+      "stableDay": "Stable Day",
+      "mildMorningRisk": "Mild Morning Risk",
+      "stableHours": "stable for the past 8 hours",
+      "goodWork": "good work",
+      "glucoseStable": "Your glucose has been",
+      "withAverage": "with an average of",
+      "carbsBalanced": "Your carb intake is well-balanced. Keep up the",
+      "breakfastSpike": "Breakfast carbs yesterday caused a spike. Try",
+      "reduceRice": "reducing rice portion to ½ cup",
+      "patternDetected": "Pattern Detected: Post-meal spikes after lunch (3 days). Consider 10-min walk after eating."
+    },
     "tabs": {
       "overview": "Overview",
       "aiInsights": "AI Insights",
       "trends": "Trends"
+    },
+    "glucosePrediction": {
+      "title": "Predicted Glucose (Next 4 Hours)",
+      "aiConfidence": "AI Confidence:",
+      "medium": "Medium",
+      "predictedRange": "Predicted Range",
+      "basedOnPatterns": "Based on recent patterns",
+      "considersMeal": "Considers meal + insulin",
+      "activityFactored": "Activity factored in",
+      "tip": "Tip:",
+      "peakTiming": "Your glucose typically peaks 90 minutes after meals. Plan accordingly."
+    },
+    "lifestyleCoach": {
+      "title": "AI Lifestyle Coach",
+      "suggestions": "Daily Suggestions",
+      "nutrition": "Nutrition",
+      "activity": "Activity",
+      "hydration": "Hydration",
+      "replaceChapati": "Replace chapati at dinner with",
+      "brownRice": "½ cup brown rice",
+      "forLowerPeaks": "for lower post-meal peaks.",
+      "walkAfterLunch": "10–15 minute walk",
+      "improvesGlucose": "after lunch improves glucose by 10–25 mg/dL.",
+      "drinkWater": "Drink",
+      "waterAmount": "500 mL water",
+      "beforeBreakfast": "before breakfast to reduce fasting spikes."
+    },
+    "riskRadar": {
+      "title": "Hypo / Hyper Risk Radar",
+      "morningHigh": "Morning High",
+      "postDinnerSpike": "Post-Dinner Spike",
+      "lateNightDrop": "Late-Night Drop",
+      "overallRisk": "Overall Risk",
+      "low": "Low"
+    },
+    "medicationAdherence": {
+      "title": "Medication Adherence",
+      "dayStreak": "day streak",
+      "thisWeek": "This Week",
+      "adherence": "adherence",
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    },
+    "diabetesSummary": {
+      "title": "Diabetes Control Summary",
+      "clinicalSummary": "Clinical Summary",
+      "keyRiskAreas": "Key Risk Areas",
+      "recommendedFocus": "Recommended Focus Areas",
+      "dataCompleteness": "Data Completeness:"
+    },
+    "insulinRange": {
+      "title": "AI Predicted Insulin Range",
+      "saferRecommendation": "Safer Recommendation",
+      "basedOnDays": "Based on similar days, your typical daily insulin falls between:",
+      "units": "units",
+      "confidence": "Confidence:",
+      "consultWarning": "Always consult your doctor before making changes to your insulin dosage.",
+      "factorsConsidered": "Factors Considered",
+      "recentPatterns": "Recent glucose patterns",
+      "carbIntake": "Carb intake",
+      "activityLevel": "Activity level"
+    },
+    "diabetesNews": {
+      "title": "Diabetes News & Tips",
+      "dailyFeed": "Daily Feed"
     },
     "metrics": {
       "glucose": "Glucose",
@@ -218,7 +316,9 @@
     },
     "trends": {
       "title": "Glucose Trends",
-      "currentStatus": "Current Status"
+      "currentStatus": "Current Status",
+      "noData": "No glucose data available for the selected period",
+      "loadError": "Failed to load glucose data"
     }
   },
   "insulin": {
@@ -254,7 +354,13 @@
       "generated": "Prediction Generated",
       "ready": "Your insulin recommendation is ready",
       "failed": "Prediction Failed",
-      "unable": "Unable to generate prediction"
+      "unable": "Unable to generate prediction",
+      "loading": "Loading...",
+      "noData": "No data",
+      "generating": "Generating...",
+      "generateButton": "Generate Prediction",
+      "units": "units",
+      "confidence": "conf."
     }
   },
   "food": {
@@ -263,6 +369,9 @@
     "newMeal": "New Meal",
     "typeManually": "Type Manually",
     "voiceInput": "Voice Input",
+    "voiceLogging": "Voice Food Logging",
+    "logMealButton": "Log Meal",
+    "tapMicPrompt": "Tap mic to log your meal",
     "foodDescription": "Food Description",
     "foodPlaceholder": "e.g., 2 chapati with dal, biryani 200g, dosa idli sambar, chicken salad",
     "tipSpelling": "💡 Tip: Just type what you ate - spelling doesn't need to be perfect!",
@@ -574,6 +683,10 @@
       "fileSizeLimit": "Please upload a file smaller than 20MB",
       "parsingFailed": "Parsing failed",
       "parsingFailedDesc": "Could not extract data from document. Please enter details manually.",
+      "parsingSuccess": "Parsing successful",
+      "parsingSuccessDesc": "Extracted {{count}} field(s) from your report. Please review and confirm.",
+      "parsingPartial": "Partial extraction",
+      "parsingPartialDesc": "Some fields were extracted. Please review and fill in missing information.",
       "invalidFileType": "Invalid file type",
       "supportedFileTypes": "Please upload a PDF, JPEG, or PNG file",
       "reportLoaded": "Report loaded",
@@ -631,5 +744,102 @@
     "appearanceDesc": "Customize the look and feel of the app",
     "darkMode": "Dark Mode",
     "darkModeDesc": "Use dark theme throughout the app"
+  },
+  "reports": {
+    "title": "Reports & Documents",
+    "subtitle": "Reports & Medical Documents",
+    "description": "Upload, manage, and analyze your medical reports",
+    "myReports": "My Reports",
+    "uploadNew": "Upload New",
+    "trends": "Trends",
+    "loading": "Loading reports...",
+    "viewDetails": "View Details",
+    "noReportsYet": "No Reports Yet",
+    "uploadFirst": "Upload your first medical report to get started",
+    "uploadReport": "Upload Report",
+    "uploadMedicalReport": "Upload Medical Report",
+    "goToDocuments": "Go to Documents & OCR page to upload and analyze your reports",
+    "goToDocumentsPage": "Go to Documents Page",
+    "avgA1C": "Average A1C Trend",
+    "bmiTrend": "BMI Trend",
+    "totalReports": "Total Reports",
+    "basedOnReports": "Based on reports",
+    "uploaded": "Uploaded",
+    "trendAnalysisComingSoon": "Trend Analysis Coming Soon",
+    "uploadMoreForTrends": "Upload more reports to see trend analysis"
+  },
+  "documentsOCR": {
+    "title": "Documents & OCR",
+    "uploadDocument": "Upload Document",
+    "processing": "Processing...",
+    "pageTitle": "Medical Documents & OCR",
+    "pageDescription": "Upload medical reports for AI-powered data extraction and insulin prediction",
+    "aiExtractedData": "AI-Extracted Data from Latest Upload",
+    "reportType": "Report Type",
+    "date": "Date",
+    "aiConfidence": "AI Confidence",
+    "extractedMedicalValues": "Extracted Medical Values",
+    "aiInsightsAndPredictions": "AI Insights & Predictions",
+    "aiInsulinPrediction": "AI Insulin Prediction Based on Extracted Data",
+    "basedOnExtractedData": "Based on extracted medical data, the AI recommends:",
+    "basalInsulin": "Basal insulin (daily)",
+    "insulinToCarbRatio": "Insulin-to-carb ratio",
+    "units": "units",
+    "consultWarning": "⚠️ This is an AI prediction based on your uploaded medical report. Please consult your healthcare provider before making changes.",
+    "uploadedDocuments": "Uploaded Documents",
+    "noDocumentsYet": "No documents uploaded yet",
+    "uploadFirstReport": "Upload your first medical report to get started with AI analysis",
+    "processed": "Processed",
+    "view": "View",
+    "uploadingDocument": "Uploading document...",
+    "aiAnalyzing": "AI is analyzing your medical report",
+    "uploadSuccess": "Document processed successfully!",
+    "aiExtracted": "AI extracted {{count}} medical data points from your report",
+    "uploadFailed": "Upload failed",
+    "uploadFailedDescription": "Failed to process document",
+    "authRequired": "Authentication required. Please log in.",
+    "medicalReport": "Medical Report",
+    "patientName": "Patient Name",
+    "dateOfBirth": "Date of Birth",
+    "weight": "Weight",
+    "height": "Height",
+    "hbA1c": "HbA1c",
+    "medications": "Medications",
+    "insulinDose": "Insulin Dose",
+    "targetRange": "Target Range",
+    "excellentControl": "HbA1c ({{value}}%) shows excellent diabetes control",
+    "moderateControl": "HbA1c ({{value}}%) indicates moderate diabetes control",
+    "elevatedA1c": "HbA1c ({{value}}%) is elevated - consult with healthcare provider",
+    "weightRecorded": "Weight: {{value}} kg recorded",
+    "currentMedications": "Current medications: {{value}}",
+    "insulinNoted": "Insulin dose: {{value}} units noted",
+    "documentUploaded": "Document uploaded successfully",
+    "aiAnalysisComplete": "AI analysis completed - review extracted data above"
+  },
+  "careTeam": {
+    "title": "Care Team",
+    "yourCareTeam": "Your Care Team",
+    "description": "Connect with your doctors, send messages, and manage appointments",
+    "tabs": {
+      "doctors": "My Doctors",
+      "messages": "Messages",
+      "appointments": "Appointments"
+    },
+    "doctors": {
+      "title": "My Doctors",
+      "description": "View and manage your healthcare providers",
+      "viewButton": "View My Doctors"
+    },
+    "messages": {
+      "title": "Messages",
+      "description": "Send secure messages to your care team",
+      "goToButton": "Go to Messages"
+    },
+    "appointments": {
+      "title": "Appointments",
+      "description": "Schedule and manage your healthcare appointments",
+      "goToButton": "Go to Appointments"
+    },
+    "loading": "Loading care team information..."
   }
 }

@@ -41,16 +41,19 @@ function formatChartData(data: any[], range: TimeRange) {
     timestamp: new Date(item.timestamp),
   }));
 }
-
 export default function GlucoseTrendChart() {
   const { t } = useTranslation();
   const [selectedRange, setSelectedRange] = useState<TimeRange>('24h');
-  const { data: healthData } = useQuery({
+  const { data: healthData, isLoading, error, refetch } = useQuery({
     queryKey: ['/api/health-data'],
+    staleTime: 5000,
+    refetchInterval: 30000,
   });
 
   const chartData = useMemo(() => {
-    return formatChartData((healthData as any)?.data || [], selectedRange);
+    const data = formatChartData((healthData as any)?.data || [], selectedRange);
+    console.log(`✅ Chart data updated for range ${selectedRange}:`, data.length, 'readings');
+    return data;
   }, [healthData, selectedRange]);
 
   const currentGlucose = chartData.length > 0 ? chartData[chartData.length - 1].glucose : 0;
@@ -77,10 +80,13 @@ export default function GlucoseTrendChart() {
               variant={selectedRange === range ? 'default' : 'ghost'}
               onClick={() => {
                 setSelectedRange(range);
-                console.log(`Time range changed to ${range}`);
+                console.log(`📊 Time range changed to ${range}`);
+                refetch();
               }}
+              disabled={isLoading}
               className={selectedRange === range ? 'bg-primary text-primary-foreground' : ''}
               data-testid={`button-timerange-${range}`}
+              title={`View ${range === '6h' ? '6-hour' : range === '24h' ? '24-hour' : range === '7d' ? '7-day' : '30-day'} trend`}
             >
               {range}
             </Button>
@@ -89,50 +95,67 @@ export default function GlucoseTrendChart() {
       </div>
 
       <div className="flex-1 mb-4">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData.length > 0 ? chartData : []}>
-            <defs>
-              <linearGradient id="glucoseGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-            <XAxis 
-              dataKey="time" 
-              stroke="hsl(var(--muted-foreground))"
-              fontSize={12}
-              tickLine={false}
-              axisLine={{ stroke: 'hsl(var(--border))' }}
-            />
-            <YAxis 
-              stroke="hsl(var(--muted-foreground))"
-              fontSize={12}
-              domain={[60, 150]}
-              tickLine={false}
-              axisLine={{ stroke: 'hsl(var(--border))' }}
-            />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: 'hsl(var(--card))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '8px',
-                color: 'hsl(var(--foreground))'
-              }}
-            />
-            <ReferenceLine y={70} stroke="#FF6B6B" strokeDasharray="5 5" opacity={0.5} />
-            <ReferenceLine y={180} stroke="#FFB84D" strokeDasharray="5 5" opacity={0.5} />
-            <Area 
-              type="monotone" 
-              dataKey="glucose" 
-              stroke="hsl(var(--primary))" 
-              strokeWidth={3}
-              fill="url(#glucoseGradient)"
-              dot={{ fill: '#22d3ee', r: 5, strokeWidth: 2, stroke: '#22d3ee' }}
-              activeDot={{ r: 7, fill: '#22d3ee', stroke: '#fff', strokeWidth: 2 }}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+        {isLoading && (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            <p>{t('common.loading')}</p>
+          </div>
+        )}
+        {error && (
+          <div className="flex items-center justify-center h-full text-destructive">
+            <p>{t('glucose.trends.loadError')}</p>
+          </div>
+        )}
+        {!isLoading && !error && chartData.length === 0 && (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            <p>{t('glucose.trends.noData')}</p>
+          </div>
+        )}
+        {!isLoading && !error && chartData.length > 0 && (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData}>
+              <defs>
+                <linearGradient id="glucoseGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+              <XAxis 
+                dataKey="time" 
+                stroke="hsl(var(--muted-foreground))"
+                fontSize={12}
+                tickLine={false}
+                axisLine={{ stroke: 'hsl(var(--border))' }}
+              />
+              <YAxis 
+                stroke="hsl(var(--muted-foreground))"
+                fontSize={12}
+                domain={[60, 150]}
+                tickLine={false}
+                axisLine={{ stroke: 'hsl(var(--border))' }}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--card))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '8px',
+                  color: 'hsl(var(--foreground))'
+                }}
+              />
+              <ReferenceLine y={70} stroke="#FF6B6B" strokeDasharray="5 5" opacity={0.5} />
+              <ReferenceLine y={180} stroke="#FFB84D" strokeDasharray="5 5" opacity={0.5} />
+              <Area 
+                type="monotone" 
+                dataKey="glucose" 
+                stroke="hsl(var(--primary))" 
+                strokeWidth={3}
+                fill="url(#glucoseGradient)"
+                dot={{ fill: '#22d3ee', r: 5, strokeWidth: 2, stroke: '#22d3ee' }}
+                activeDot={{ r: 7, fill: '#22d3ee', stroke: '#fff', strokeWidth: 2 }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
       <div className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">

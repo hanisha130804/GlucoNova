@@ -75,6 +75,9 @@ export const userProfiles = pgTable("user_profiles", {
   medications: varchar("medications", { length: 500 }),
   typicalInsulin: decimal("typical_insulin", { precision: 5, scale: 2 }),
   targetRange: varchar("target_range", { length: 50 }),
+  diabetesType: varchar("diabetes_type", { length: 50 }),
+  icr: decimal("icr", { precision: 5, scale: 2 }), // Insulin to Carb Ratio
+  isf: decimal("isf", { precision: 5, scale: 2 }), // Insulin Sensitivity Factor
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -176,8 +179,11 @@ export const insertUserProfileSchema = createInsertSchema(userProfiles, {
   lastA1c: z.coerce.number().positive().optional(),
   typicalInsulin: z.coerce.number().positive().optional(),
   dateOfBirth: z.string().optional(),
-  medications: z.string().optional(),
+  medications: z.array(z.string()).optional(),
   targetRange: z.string().optional(),
+  diabetesType: z.string().optional(),
+  icr: z.coerce.number().positive().optional(),
+  isf: z.coerce.number().positive().optional(),
 }).omit({
   id: true,
   userId: true,
@@ -279,6 +285,9 @@ export interface UserProfile {
   medications?: string;
   typicalInsulin?: number;
   targetRange?: string;
+  diabetesType?: string;
+  icr?: number;
+  isf?: number;
   createdAt: Date;
   updatedAt: Date;
 }

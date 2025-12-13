@@ -34,32 +34,32 @@ import { useTranslation } from 'react-i18next';
 
 // Redesigned Patient navigation menu - Clean 7-item structure
 const patientMenuItems = [
-  { title: 'navigation.overview', icon: LayoutDashboard, url: '/dashboard', section: 'Health' },
-  { title: 'navigation.glucoseInsulin', icon: Activity, url: '/glucose-insulin', section: 'Health' },
-  { title: 'navigation.aiFoodLog', icon: Utensils, url: '/ai-food-log', section: 'Health' },
-  { title: 'navigation.suggestionsActivity', icon: Sparkles, url: '/suggestions-activity', section: 'Health' },
-  { title: 'navigation.reportsDocuments', icon: FolderOpen, url: '/reports-documents', section: 'Medical' },
-  { title: 'navigation.aiCoach', icon: Brain, url: '/ai-insights', section: 'AI' },
-  { title: 'navigation.careTeam', icon: Users, url: '/care-team', section: 'Care' },
-  { title: 'navigation.settings', icon: Settings, url: '/settings', section: 'Account' },
+  { title: 'navigation.overview', icon: LayoutDashboard, url: '/dashboard', section: 'health' },
+  { title: 'navigation.glucoseInsulin', icon: Activity, url: '/glucose-insulin', section: 'health' },
+  { title: 'navigation.aiFoodLog', icon: Utensils, url: '/ai-food-log', section: 'health' },
+  { title: 'navigation.suggestionsActivity', icon: Sparkles, url: '/suggestions-activity', section: 'health' },
+  { title: 'navigation.reportsDocuments', icon: FolderOpen, url: '/reports-documents', section: 'medical' },
+  { title: 'navigation.aiCoach', icon: Brain, url: '/ai-insights', section: 'ai' },
+  { title: 'navigation.careTeam', icon: Users, url: '/care-team', section: 'care' },
+  { title: 'navigation.settings', icon: Settings, url: '/settings', section: 'account' },
 ];
 
 // Doctor navigation menu - Clinical workspace
 const doctorMenuItems = [
-  { title: 'navigation.overview', icon: LayoutDashboard, url: '/dashboard', section: 'Clinical' },
-  { title: 'navigation.patientDirectory', icon: Users, url: '/patients', section: 'Patients' },
-  { title: 'navigation.clinicalAlerts', icon: BellRing, url: '/alerts', section: 'Patients' },
-  { title: 'navigation.reportsAnalytics', icon: BarChart3, url: '/reports', section: 'Analytics' },
-  { title: 'navigation.messages', icon: MessageCircle, url: '/messages', section: 'Communication' },
-  { title: 'navigation.appointments', icon: Calendar, url: '/appointments', section: 'Communication' },
-  { title: 'navigation.settings', icon: Settings, url: '/settings', section: 'Account' },
+  { title: 'navigation.overview', icon: LayoutDashboard, url: '/dashboard', section: 'clinical' },
+  { title: 'navigation.patientDirectory', icon: Users, url: '/patients', section: 'patients' },
+  { title: 'navigation.clinicalAlerts', icon: BellRing, url: '/alerts', section: 'patients' },
+  { title: 'navigation.reportsAnalytics', icon: BarChart3, url: '/reports', section: 'analytics' },
+  { title: 'navigation.messages', icon: MessageCircle, url: '/messages', section: 'communication' },
+  { title: 'navigation.appointments', icon: Calendar, url: '/appointments', section: 'communication' },
+  { title: 'navigation.settings', icon: Settings, url: '/settings', section: 'account' },
 ];
 
 const adminMenuItems = [
-  { title: 'navigation.overview', icon: LayoutDashboard, url: '/dashboard', section: 'Dashboard' },
-  { title: 'navigation.users', icon: User, url: '/users', section: 'Management' },
-  { title: 'navigation.reports', icon: FileText, url: '/reports', section: 'Management' },
-  { title: 'navigation.settings', icon: Settings, url: '/settings', section: 'Settings' },
+  { title: 'navigation.overview', icon: LayoutDashboard, url: '/dashboard', section: 'dashboard' },
+  { title: 'navigation.users', icon: User, url: '/users', section: 'management' },
+  { title: 'navigation.reports', icon: FileText, url: '/reports', section: 'management' },
+  { title: 'navigation.settings', icon: Settings, url: '/settings', section: 'settings' },
 ];
 
 export default function AppSidebar() {
@@ -210,7 +210,7 @@ export default function AppSidebar() {
                         padding: '12px 18px 8px 18px',
                         marginTop: index === 0 ? '0' : '8px',
                       }}>
-                        {item.section}
+                        {t(`navigation.sections.${item.section}`)}
                       </div>
                     )}
                     <Link 

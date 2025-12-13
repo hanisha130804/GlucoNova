@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import AppSidebar from '@/components/AppSidebar';
 import { Utensils, Mic, MicOff, Loader2, AlertCircle, CheckCircle, TrendingUp, Apple, Languages, Info, Leaf, Clock, Globe } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -11,6 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
+import { useTranslation } from 'react-i18next';
+import { changeLanguage } from '@/i18n/config';
 
 type Language = 'EN' | 'HI' | 'KN' | 'TE' | 'TA' | 'MR' | 'BN' | 'GU' | 'ML' | 'PA' | 'OR' | 'AS';
 
@@ -56,6 +58,7 @@ interface MealAnalysis {
 
 export default function AIFoodLogPage() {
   const { toast } = useToast();
+  const { t, i18n } = useTranslation();
   const [language, setLanguage] = useState<Language>('EN');
   const [mealTiming, setMealTiming] = useState<'AM' | 'PM' | 'EV'>('PM');
   const [inputMode, setInputMode] = useState<'type' | 'voice'>('type');
@@ -71,6 +74,29 @@ export default function AIFoodLogPage() {
   const [cookingStyle, setCookingStyle] = useState('');
   
   const recognitionRef = useRef<any>(null);
+
+  // Sync language state with i18n when i18n language changes
+  useEffect(() => {
+    const langMap: Record<string, Language> = {
+      'en': 'EN',
+      'hi': 'HI',
+      'kn': 'KN',
+      'te': 'TE',
+    };
+    const mappedLang = langMap[i18n.language] || 'EN';
+    setLanguage(mappedLang);
+  }, [i18n.language]);
+
+  // Auto-update meal type based on meal timing selection
+  useEffect(() => {
+    if (mealTiming === 'AM') {
+      setMealType('Breakfast');
+    } else if (mealTiming === 'PM') {
+      setMealType('Lunch');
+    } else if (mealTiming === 'EV') {
+      setMealType('Dinner');
+    }
+  }, [mealTiming]);
 
   // Meal timing translations for multiple languages
   const mealTimingLabels: Record<string, { AM: string; PM: string; EV: string }> = {
@@ -89,7 +115,11 @@ export default function AIFoodLogPage() {
   };
 
   // Get labels for current language, fallback to EN
-  const currentTimingLabels = mealTimingLabels[language] || mealTimingLabels['EN'];
+  // useMemo ensures proper recalculation when language changes
+  const currentTimingLabels = useMemo(
+    () => mealTimingLabels[language] || mealTimingLabels['EN'],
+    [language]
+  );
 
   // Regional language mappings for Indian dishes
   // Maps local language names to their English/standard equivalents
@@ -675,7 +705,28 @@ export default function AIFoodLogPage() {
           {/* Language Switcher */}
           <div className="flex items-center gap-2">
             <Globe className="w-4 h-4 text-muted-foreground" />
-            <Select value={language} onValueChange={(value) => setLanguage(value as Language)}>
+            <Select 
+              value={language} 
+              onValueChange={(value) => {
+                const langMap: Record<Language, string> = {
+                  'EN': 'en',
+                  'HI': 'hi',
+                  'KN': 'kn',
+                  'TE': 'te',
+                  'TA': 'en',
+                  'MR': 'en',
+                  'BN': 'en',
+                  'GU': 'en',
+                  'ML': 'en',
+                  'PA': 'en',
+                  'OR': 'en',
+                  'AS': 'en',
+                };
+                const i18nLang = langMap[value as Language];
+                changeLanguage(i18nLang);
+                setLanguage(value as Language);
+              }}
+            >
               <SelectTrigger className="h-8 w-[140px]">
                 <SelectValue />
               </SelectTrigger>
@@ -1062,7 +1113,13 @@ export default function AIFoodLogPage() {
                             <div>
                               <p className="font-medium text-sm">{meal.mealName || 'Meal'}</p>
                               <p className="text-xs text-muted-foreground">
-                                {new Date(meal.timestamp).toLocaleDateString()} at {new Date(meal.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {new Date(meal.timestamp).toLocaleString(undefined, {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  hour12: true
+                                })}
                               </p>
                             </div>
                             <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getImpactBadge(meal.totals?.overallImpactLevel || 'medium')}`}>

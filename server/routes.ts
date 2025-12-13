@@ -2,10 +2,16 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
 import path from "path";
+import fs from "fs";
 import { storage } from "./storage";
 import { authMiddleware, roleMiddleware, approvalMiddleware, authWithApproval, optionalAuthWithApproval, generateToken, type AuthRequest } from "./middleware/auth";
 import { hashPassword, comparePassword } from "./utils/password";
 import { insertUserSchema, loginSchema, healthDataSchema, mealSchema, insertUserProfileSchema, insertMedicationSchema } from "@shared/schema";
+import { consolidate } from "./services/parserService";
+import { inferDiabetesType } from "./services/diabetesClassifier";
+import { calculateInsulinDose, estimateICR, estimateISF, scanPatientMeds } from "./services/insulinCalculator";
+import { parsePatientData, validateParsedData } from "./services/multiFormatParser";
+import { searchMedications, getMedicationById } from "./services/medicationSearcher";
 
 // Use memory storage instead of disk storage for Railway compatibility
 const upload = multer({
@@ -915,104 +921,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // ==================== PREDICTION ROUTES ====================
   
-  app.post('/api/predictions/insulin', authMiddleware, roleMiddleware('patient'), async (req: AuthRequest, res) => {
+  app.post('/api/predictions/insulin', optionalAuthWithApproval, async (req: any, res: any) => {
     try {
       const userId = req.user!.userId;
+      const { 
+        current_glucose_mgdl,
+        carbs_g,
+        insulin_type,
+        icr,
+        isf,
+        correction_target,
+        activity_level,
+        diabetes_type,
+        patient_id
+      } = req.body;
       
-      const recentHealthData = await storage.getHealthDataByUser(userId, 10);
-      const recentMeals = await storage.getMealsByUser(userId, 10);
+      // Validate required parameters
+      if (!current_glucose_mgdl) {
+        return res.status(400).json({ error: 'current_glucose_mgdl is required' });
+      }
+
+      // Get user profile for defaults
+      const userProfile = await storage.getUserProfile(userId);
       
-      if (recentHealthData.length === 0) {
-        return res.status(400).json({ 
-          message: 'Insufficient health data for prediction. Please log at least one health entry first.' 
-        });
-      }
-
-      const latestData = recentHealthData[0];
-      const factors: string[] = [];
-      let predictedInsulin = 0;
+      // Load medications database for medication-aware calculation
+      let medsDB: Record<string, any> | undefined = undefined;
+      let patientMeds: Array<{ med_id: string }> = [];
       
-      const baseConfidence = recentHealthData.length >= 5 ? 0.6 : 0.4;
-      let confidence = baseConfidence;
-
-      const avgGlucose = recentHealthData.reduce((sum, d) => sum + d.glucose, 0) / recentHealthData.length;
-      const avgInsulin = recentHealthData.reduce((sum, d) => sum + (d.insulin || 0), 0) / recentHealthData.length;
+      try {
+        const medsPath = path.join(process.cwd(), 'server', 'data', 'medications.json');
+        const medsContent = fs.readFileSync(medsPath, 'utf-8');
+        medsDB = JSON.parse(medsContent);
+      } catch (e) {
+        console.warn('Could not load medications database:', e);
+      }
       
-      const recentMealSlice = recentMeals.slice(0, 3);
-      const recentCarbs = recentMealSlice.length > 0 
-        ? recentMealSlice.reduce((sum, m) => sum + m.carbs, 0) / recentMealSlice.length
-        : 0;
-      const totalMealCount = recentMeals.length;
-
-      if (latestData.glucose > 180) {
-        const correctionFactor = (latestData.glucose - 180) / 50;
-        predictedInsulin += correctionFactor * 2;
-        factors.push(`High glucose level (${latestData.glucose} mg/dL) requires correction dose`);
-        if (recentHealthData.length >= 5) confidence += 0.1;
-      } else if (latestData.glucose < 100) {
-        factors.push(`Low glucose level (${latestData.glucose} mg/dL) - minimal insulin recommended`);
-        predictedInsulin = Math.max(0, predictedInsulin - 1);
-        if (recentHealthData.length >= 5) confidence += 0.05;
-      } else {
-        factors.push(`Normal glucose level (${latestData.glucose} mg/dL)`);
-        if (recentHealthData.length >= 5) confidence += 0.05;
-      }
-
-      if (recentCarbs > 0 && recentMealSlice.length > 0) {
-        const carbRatio = 15;
-        const carbInsulin = recentCarbs / carbRatio;
-        predictedInsulin += carbInsulin;
-        factors.push(`Recent carb intake (~${Math.round(recentCarbs)}g) requires ${carbInsulin.toFixed(1)} units`);
-        if (recentMealSlice.length >= 3) confidence += 0.15;
-      }
-
-      if (recentHealthData.length >= 3) {
-        if (latestData.activityLevel === 'high') {
-          predictedInsulin *= 0.85;
-          factors.push('High activity level - reducing insulin dose by 15%');
-          confidence += 0.05;
-        } else if (latestData.activityLevel === 'low') {
-          predictedInsulin *= 1.05;
-          factors.push('Low activity level - slightly increasing insulin dose');
-          confidence += 0.05;
-        }
-      }
-
-      if (avgInsulin > 0 && recentHealthData.length >= 7) {
-        const historicalWeight = 0.3;
-        predictedInsulin = predictedInsulin * (1 - historicalWeight) + avgInsulin * historicalWeight;
-        factors.push(`Historical average insulin (${avgInsulin.toFixed(1)} units) considered`);
-        confidence += 0.1;
-      }
-
-      predictedInsulin = Math.max(0, Math.round(predictedInsulin * 10) / 10);
+      // Use new intelligent calculator with medication awareness
+      const calculationInput = {
+        patient_id: patient_id || userId,
+        current_glucose_mgdl: parseFloat(current_glucose_mgdl) || 100,
+        carbs_g: parseFloat(carbs_g) || 0,
+        icr: parseFloat(icr) || (userProfile?.icr as any) || 10,
+        isf: parseFloat(isf) || (userProfile?.isf as any) || 50,
+        correction_target: parseFloat(correction_target) || 100,
+        insulin_type: insulin_type || 'rapid',
+        diabetes_type: diabetes_type || (userProfile?.diabetesType as any) || 'Unknown',
+        activity_level: activity_level || 'moderate'
+      };
       
-      let maxConfidence = 0.5;
-      if (recentHealthData.length >= 5 && totalMealCount >= 2) {
-        maxConfidence = 0.7;
-      }
-      if (recentHealthData.length >= 10 && totalMealCount >= 5) {
-        maxConfidence = 0.85;
-      }
-      confidence = Math.min(maxConfidence, confidence);
-
+      const result = calculateInsulinDose(
+        calculationInput,
+        patientMeds,
+        medsDB,
+        { max_units: 20, default_correction_target: 100 }
+      );
+      
+      // Save prediction to database
       const prediction = await storage.createPrediction(userId, {
-        predictedInsulin,
-        confidence,
-        factors,
+        predictedInsulin: result.rounded_units,
+        confidence: result.confidence,
+        factors: [result.explanation, ...result.safety_flags],
       });
 
-      res.status(201).json({ 
-        message: 'Insulin prediction generated successfully',
-        prediction: {
-          predictedInsulin: prediction.predictedInsulin,
-          confidence: prediction.confidence,
-          factors: prediction.factors,
-          timestamp: prediction.timestamp,
-        }
+      res.status(201).json({
+        ...result,
+        timestamp: prediction.timestamp,
       });
     } catch (error: any) {
-      res.status(500).json({ message: error.message || 'Failed to generate prediction' });
+      console.error('Insulin prediction error:', error);
+      res.status(500).json({ error: error.message || 'Failed to generate prediction' });
     }
   });
 
@@ -1043,6 +1020,143 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ predictions });
     } catch (error: any) {
       res.status(500).json({ message: error.message || 'Failed to fetch predictions' });
+    }
+  });
+
+  app.post('/api/predictions/record', optionalAuthWithApproval, async (req: any, res: any) => {
+    try {
+      const userId = req.user!.userId;
+      const {
+        rounded_units,
+        carb_units,
+        correction_units,
+        current_glucose_mgdl,
+        carbs_g,
+        insulin_type,
+      } = req.body;
+
+      // Validate required fields
+      if (typeof rounded_units !== 'number') {
+        return res.status(400).json({ error: 'rounded_units is required and must be a number' });
+      }
+
+      // Save the calculated/planned dose to database
+      const prediction = await storage.createPrediction(userId, {
+        predictedInsulin: rounded_units,
+        confidence: 1.0, // This was user-confirmed
+        factors: [
+          `Carbs: ${carbs_g || 0}g`,
+          `Correction: ${correction_units || 0} units`,
+          `Glucose: ${current_glucose_mgdl} mg/dL`,
+          `Insulin type: ${insulin_type || 'rapid'}`,
+        ],
+      });
+
+      res.status(201).json({
+        message: 'Insulin dose recorded successfully',
+        prediction: {
+          id: prediction.id,
+          rounded_units,
+          carb_units,
+          correction_units,
+          current_glucose_mgdl,
+          carbs_g,
+          insulin_type,
+          timestamp: prediction.timestamp,
+          recordedAt: new Date().toISOString(),
+        },
+      });
+    } catch (error: any) {
+      console.error('Record prediction error:', error);
+      res.status(500).json({ error: error.message || 'Failed to record prediction' });
+    }
+  });
+
+  // ==================== MEDICATION ROUTES ====================
+
+  app.get('/api/medications/search', optionalAuthWithApproval, (req: any, res: any) => {
+    try {
+      const query = req.query.q as string;
+      const max = parseInt(req.query.max as string) || 10;
+      
+      if (!query?.trim()) {
+        return res.status(400).json({ error: 'Search query required' });
+      }
+      
+      const results = searchMedications(query, max);
+      res.json(results);
+    } catch (error: any) {
+      console.error('Medication search error:', error);
+      res.status(500).json({ error: 'Medication search failed' });
+    }
+  });
+
+  app.get('/api/medications/:id', optionalAuthWithApproval, (req: any, res: any) => {
+    try {
+      const med = getMedicationById(req.params.id);
+      if (!med) {
+        return res.status(404).json({ error: 'Medication not found' });
+      }
+      res.json(med);
+    } catch (error: any) {
+      console.error('Medication fetch error:', error);
+      res.status(500).json({ error: 'Failed to fetch medication' });
+    }
+  });
+
+  app.post('/api/patients/:patientId/medications', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { patientId } = req.params;
+      const { medicationId, strength_mg, notes } = req.body;
+      
+      // Ensure user can only add medications to their own record, or doctor can add to patient
+      if (req.user!.role === 'patient' && patientId !== req.user!.userId) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      
+      if (!medicationId) {
+        return res.status(400).json({ error: 'Medication ID required' });
+      }
+      
+      // Get the medication to verify it exists
+      const med = getMedicationById(medicationId);
+      if (!med) {
+        return res.status(404).json({ error: 'Medication not found' });
+      }
+      
+      // Return success with medication details
+      // In a full implementation, this would persist to database
+      res.json({ 
+        message: 'Medication added successfully',
+        medication: {
+          medicationId,
+          strength_mg: strength_mg || (med as any).strength_mg,
+          addedAt: new Date().toISOString(),
+          addedBy: req.user!.userId,
+          acknowledged: req.user!.role === 'patient',
+          ...med
+        }
+      });
+    } catch (error: any) {
+      console.error('Add medication error:', error);
+      res.status(500).json({ error: 'Failed to add medication' });
+    }
+  });
+
+  app.get('/api/patients/:patientId/medications', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { patientId } = req.params;
+      
+      // Ensure user can only view their own medications, or doctor can view patient's
+      if (req.user!.role === 'patient' && patientId !== req.user!.userId) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      
+      // Return empty medications list (full impl would query database)
+      res.json({ medications: [] });
+    } catch (error: any) {
+      console.error('Fetch medications error:', error);
+      res.status(500).json({ error: 'Failed to fetch medications' });
     }
   });
 
@@ -1113,22 +1227,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // PDF/Document parsing endpoint for extracting medical information
   app.post('/api/reports/parse', upload.single('file'), async (req: any, res: any) => {
     try {
+      console.log('📄 Parse request received');
+      console.log('File present:', !!req.file);
+      
       if (!req.file) {
+        console.error('❌ No file in request');
         return res.status(400).json({ message: 'No file uploaded' });
       }
 
+      console.log('File details:', {
+        name: req.file.originalname,
+        size: req.file.size,
+        type: req.file.mimetype,
+        bufferLength: req.file.buffer?.length
+      });
+
       const fileType = req.file.mimetype;
       let extractedData: any = {};
+      let pdfText = ''; // Declare pdfText in broader scope for fallback access
 
       // Handle PDF files
       if (fileType === 'application/pdf') {
         try {
-          const fs = await import('fs').then(m => m.promises);
+          const { writeFileSync, unlinkSync } = await import('fs');
           const PDFParser = (await import('pdf2json')).default;
           
           console.log('=== PDF Parsing with pdf2json ===');
           
           const pdfParser = new (PDFParser as any)(null, false);
+          
+          // For memory storage, write buffer to temporary file
+          const tempFilePath = `/tmp/temp-pdf-${Date.now()}.pdf`;
+          writeFileSync(tempFilePath, req.file.buffer);
           
           // Parse PDF and extract text
           const parsePromise = new Promise((resolve, reject) => {
@@ -1191,14 +1321,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
               reject(error);
             });
             
-            pdfParser.loadPDF(req.file.path);
+            // Load PDF from temp file
+            pdfParser.loadPDF(tempFilePath);
           });
           
-          const pdfText = await parsePromise as string;
+          pdfText = await parsePromise as string;
           
-          console.log('=== PDF Text Extracted ===');
+          // Cleanup temp file
+          try {
+            unlinkSync(tempFilePath);
+            console.log('✅ Cleaned up temp PDF file');
+          } catch (e) {
+            console.warn('Failed to clean up temp file:', e);
+          }
+          
+          console.log('=== PDF Text Extraction Results ===');
+          console.log('✓ Extraction completed successfully');
           console.log('Text length:', pdfText.length);
-          console.log('First 500 chars:', pdfText.substring(0, 500));
+          console.log('Is empty?', pdfText.length === 0);
+          console.log('Is only whitespace?', pdfText.trim().length === 0);
+          
+          if (pdfText.length === 0) {
+            console.error('🚨 CRITICAL: PDF text extraction returned empty string!');
+            console.error('This means pdf2json could not extract any text from the PDF');
+            console.error('Possible causes: PDF is image-based (scanned), encrypted, or corrupted');
+          } else if (pdfText.trim().length === 0) {
+            console.error('🚨 CRITICAL: PDF text is only whitespace!');
+          } else {
+            console.log('✓ Text extraction successful, non-empty content');
+          }
+          
+          console.log('\n=== FIRST 1000 CHARACTERS ===');
+          console.log(pdfText.substring(0, 1000));
+          console.log('\n=== FULL TEXT (for pattern matching) ===');
+          console.log(pdfText);
+          console.log('\n=== LAST 300 CHARACTERS ===');
+          console.log(pdfText.substring(Math.max(0, pdfText.length - 300)));
+          console.log('=== END PDF TEXT ===\n');
+          
+          // Log insulin-related content for debugging
+          const insulinMatches = pdfText.match(/insulin[^\n]{0,100}/gi);
+          if (insulinMatches) {
+            console.log('=== Insulin-related text found ===');
+            insulinMatches.forEach((match, i) => {
+              console.log(`Match ${i + 1}:`, match);
+            });
+          } else {
+            console.log('⚠️ No insulin-related text found in document');
+          }
           
           // Parse the extracted text
           extractedData = parseMedicalDocument(pdfText);
@@ -1215,28 +1385,153 @@ export async function registerRoutes(app: Express): Promise<Server> {
         extractedData = {};
       }
 
-      // Ensure extracted data has the expected structure with confidence scores
-      const responseData = {
-        name: extractedData.name || { value: null, confidence: 0 },
-        dob: extractedData.dob || { value: null, confidence: 0 },
-        weight: extractedData.weight || { value: null, confidence: 0 },
-        height: extractedData.height || { value: null, confidence: 0 },
-        lastA1c: extractedData.lastA1c || { value: null, confidence: 0 },
-        medications: extractedData.medications || { value: null, confidence: 0 },
-        typicalInsulin: extractedData.typicalInsulin || { value: null, confidence: 0 },
-        targetRange: extractedData.targetRange || { value: '70-180', confidence: 1.0 },
+      // Build ML response object with extracted data and raw text
+      const mlResponse = {
+        ...extractedData,
+        raw_text: pdfText,
+        ocr_text: pdfText
       };
 
-      console.log('=== Response Data ===');
-      console.log(responseData);
+      // Use consolidated parser service for robust fallback extraction
+      console.log('=== Calling consolidate() from parserService ===');
+      const responseData = await consolidate(mlResponse);
 
-      res.json(responseData);
+      console.log('=== Consolidated Response Data ===');
+      console.log('Response structure:');
+      console.log('- Name:', responseData.name);
+      console.log('- DOB:', responseData.dob);
+      console.log('- Weight (kg):', responseData.weight_kg);
+      console.log('- Height (cm):', responseData.height_cm);
+      console.log('- Glucose (mg/dL):', responseData.glucose_mgdl);
+      console.log('- Carbs (g):', responseData.carbs_g);
+      
+      // Infer diabetes type from parsed data
+      console.log('=== Inferring Diabetes Type ===');
+      const diabetesTypeData = {
+        dob: responseData.dob?.value as string,
+        medications: responseData.medications?.value as string,
+        insulin_regimen: responseData.insulin_regimen?.value as string,
+        a1c_percent: responseData.a1c_percent?.value as number,
+        weight_kg: responseData.weight_kg?.value as number,
+        height_cm: responseData.height_cm?.value as number,
+        raw_text: responseData.raw_text
+      };
+      
+      const diabetesTypeResult = inferDiabetesType(diabetesTypeData);
+      console.log('Diabetes Type Result:', diabetesTypeResult);
+      
+      // Add diabetes type to response
+      const enhancedResponse = {
+        ...responseData,
+        diabetes_type: {
+          value: diabetesTypeResult.diabetes_type,
+          confidence: diabetesTypeResult.confidence,
+          source: 'classifier' as const,
+          reasons: diabetesTypeResult.reasons
+        }
+      };
+
+      res.json(enhancedResponse);
     } catch (error: any) {
-      console.error('Parse error:', error);
-      res.status(500).json({ message: error.message || 'Failed to parse document' });
+      console.error('❌ Parse error:', error);
+      console.error('Error stack:', error.stack);
+      res.status(500).json({ 
+        message: error.message || 'Failed to parse document',
+        error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
     }
   });
   
+  // Helper function to normalize and extract field values with fallback logic
+  interface ExtractedField {
+    value: string | number | null;
+    confidence: number;
+    source: 'ml' | 'ocr' | 'fallback';
+  }
+
+  function createField(value: any, confidence: number, source: 'ml' | 'ocr' | 'fallback'): ExtractedField {
+    return { value, confidence, source };
+  }
+
+  // Fallback regex patterns for when ML returns null
+  function extractWithFallback(text: string, fieldType: string): ExtractedField {
+    const textLower = text.toLowerCase();
+    
+    switch (fieldType) {
+      case 'dob':
+        // Try multiple date patterns
+        const dobPatterns = [
+          /\b(\d{2}\/\d{2}\/\d{4}|\d{4}-\d{2}-\d{2})\b/,
+          /\b(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{4})\b/i
+        ];
+        for (const pattern of dobPatterns) {
+          const match = text.match(pattern);
+          if (match) {
+            let normalized = match[0];
+            // Normalize to YYYY-MM-DD
+            if (match[0].includes('/')) {
+              const parts = match[0].split('/');
+              normalized = parts.length === 3 ? `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}` : match[0];
+            }
+            return createField(normalized, 0.35, 'ocr');
+          }
+        }
+        return createField(null, 0, 'fallback');
+
+      case 'weight':
+        // Extract weight in kg or lbs
+        const weightMatch = text.match(/(\d{2,3})\s?(kg|kilograms?|lbs?|pounds?)/i);
+        if (weightMatch) {
+          let weightKg = parseFloat(weightMatch[1]);
+          if (weightMatch[2].toLowerCase().startsWith('lb') || weightMatch[2].toLowerCase().startsWith('pound')) {
+            weightKg = weightKg * 0.453592; // Convert lbs to kg
+          }
+          return createField(parseFloat(weightKg.toFixed(1)), 0.35, 'fallback');
+        }
+        return createField(null, 0, 'fallback');
+
+      case 'height':
+        // Extract height in cm or inches
+        const heightMatch = text.match(/(\d{2,3})\s?(cm|centimeters?|in|inches?)/i);
+        if (heightMatch) {
+          let heightCm = parseFloat(heightMatch[1]);
+          if (heightMatch[2].toLowerCase().startsWith('in')) {
+            heightCm = heightCm * 2.54; // Convert inches to cm
+          }
+          return createField(parseFloat(heightCm.toFixed(1)), 0.35, 'fallback');
+        }
+        return createField(null, 0, 'fallback');
+
+      case 'glucose':
+        // Extract glucose in mg/dL
+        const glucoseMatch = text.match(/(\d{2,3})\s?(mg\/dl|mmol\/l)?/i);
+        if (glucoseMatch) {
+          let glucoseMgDl = parseInt(glucoseMatch[1]);
+          if (glucoseMatch[2]?.toLowerCase().includes('mmol')) {
+            glucoseMgDl = Math.round(glucoseMgDl * 18); // Convert mmol/L to mg/dL
+          }
+          if (glucoseMgDl >= 20 && glucoseMgDl <= 600) {
+            return createField(glucoseMgDl, 0.35, 'fallback');
+          }
+        }
+        return createField(null, 0, 'fallback');
+
+      case 'carbs':
+        // Extract carbs in grams
+        const carbsMatch = text.match(/(\d{1,4})\s?(g|grams?|carbs?|carbohydrates?)/i);
+        if (carbsMatch) {
+          const carbs = parseInt(carbsMatch[1]);
+          if (carbs >= 0 && carbs <= 500) {
+            return createField(carbs, 0.35, 'fallback');
+          }
+        }
+        return createField(null, 0, 'fallback');
+
+      default:
+        return createField(null, 0, 'fallback');
+    }
+  }
+
   // Helper function to parse medical document content with confidence scores
   function parseMedicalDocument(content: string): any {
     const data: any = {};
@@ -1245,41 +1540,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('=== Parsing Medical Document ===');
     console.log('Total lines:', lines.length);
     console.log('Content length:', content.length);
+    console.log('\n=== FULL CONTENT FOR PATTERN MATCHING ===');
+    console.log(content);
+    console.log('=== END FULL CONTENT ===\n');
 
     // Try to extract all text in one pass for more flexible pattern matching
     const fullContent = content.toLowerCase();
 
-    // Extract Name - improved patterns
+    // Extract Name - ULTRA AGGRESSIVE patterns with broad fallbacks
     if (!data.name) {
-      // Pattern 1: "Patient Name: John Doe" or "Name: John Doe"
+      // Pattern 1: "Patient Name: John Doe" or "Name: John Doe" (most explicit)
       let match = content.match(/(?:patient\s+)?name[:\s]+([A-Za-z\s]+?)(?:[,\n]|$)/i);
       if (match) {
         const name = match[1].trim().split(/[,\n]/)[0].trim();
         if (name && name.length > 2 && name.length < 100 && !name.match(/^(medical|diagnostic|report|test)/i)) {
-          data.name = { value: name, confidence: 0.90 };
-          console.log('Found name:', data.name.value, 'confidence:', data.name.confidence);
+          data.name = createField(name, 0.95, 'ml');
+          console.log('Found name (Pattern 1 - explicit):', data.name.value, 'confidence:', data.name.confidence);
         }
       }
-      // Pattern 2: Look for "Patient Name:" specifically
+      
+      // Pattern 2: Look for "Patient:" or "Name:" with ANY text after it
       if (!data.name) {
-        match = content.match(/patient\s+name[:\s]+([A-Za-z\s]+?)\s*(?:age|gender|patient id|$)/i);
+        match = content.match(/(?:patient|name)[:\s]+([A-Za-z][A-Za-z\s]{2,50}?)(?:\n|,|age|dob|date|gender|id|weight|height|$)/i);
         if (match) {
           const name = match[1].trim();
-          if (name && name.length > 2 && name.length < 100) {
-            data.name = { value: name, confidence: 0.95 };
-            console.log('Found name (explicit):', data.name.value, 'confidence:', data.name.confidence);
+          if (name && name.length > 2 && !name.match(/^(medical|diagnostic|report|test|result)/i)) {
+            data.name = createField(name, 0.90, 'ocr');
+            console.log('Found name (Pattern 2 - patient/name label):', data.name.value, 'confidence:', data.name.confidence);
           }
         }
       }
-      // Pattern 3: Capitalized name pattern (fallback)
+      
+      // Pattern 3: Two capitalized words (First Last name pattern)
       if (!data.name) {
-        match = content.match(/\b([A-Z][a-z]+\s+[A-Z][a-z]+)\b/);
+        match = content.match(/\b([A-Z][a-z]{2,20}\s+[A-Z][a-z]{2,20})\b/);
         if (match) {
           const name = match[1];
           // Skip common headers
-          if (!name.match(/^(Medical|Diagnostic|Report|Patient|Test|Date|Doctor)/)) {
-            data.name = { value: name, confidence: 0.70 };
-            console.log('Found name (capitalized):', data.name.value, 'confidence:', data.name.confidence);
+          if (!name.match(/^(Medical|Diagnostic|Report|Patient|Test|Date|Doctor|Health|Laboratory|Clinical|Diabetes|Glucose)/i)) {
+            data.name = createField(name, 0.75, 'ocr');
+            console.log('Found name (Pattern 3 - capitalized pair):', data.name.value, 'confidence:', data.name.confidence);
+          }
+        }
+      }
+      
+      // Pattern 4: Single capitalized name (very aggressive fallback)
+      if (!data.name) {
+        const namePatterns = content.match(/\b([A-Z][a-z]{3,20})\b/g);
+        if (namePatterns && namePatterns.length > 0) {
+          // Take the first one that's not a common medical/document term
+          for (const pattern of namePatterns) {
+            if (!pattern.match(/^(Medical|Report|Diabetes|Patient|Doctor|Hospital|Clinic|Test|Result|Date|Page|Table|Health|Laboratory|Clinical|Glucose|Analysis|Summary|Data|Type|Level|Range|Value|Unit|Total|Daily|Weekly|Monthly)/i)) {
+              data.name = createField(pattern.trim(), 0.45, 'fallback');
+              console.log('Found name (Pattern 4 - aggressive single word):', data.name.value, 'confidence:', data.name.confidence);
+              break;
+            }
+          }
+        }
+      }
+      
+      // Pattern 5: ULTRA FALLBACK - Extract first line that looks like a name
+      if (!data.name) {
+        const firstLine = lines[0]?.trim();
+        if (firstLine && firstLine.length > 2 && firstLine.length < 50 && firstLine.match(/[A-Za-z]{3,}/)) {
+          // Check if first line looks like a name (not a header)
+          if (!firstLine.match(/^(Medical|Report|Diabetes|Patient Record|Health|Hospital|Clinic|Laboratory|Test Results|Analysis)/i)) {
+            data.name = createField(firstLine, 0.40, 'fallback');
+            console.log('Found name (Pattern 5 - first line fallback):', data.name.value, 'confidence:', data.name.confidence);
           }
         }
       }
@@ -1472,46 +1799,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Extract Weight
     if (!data.weight) {
       // Pattern 1: "weight: 70 kg" or similar
-      let match = content.match(/weight[:\s]*([0-9]{1,3}(?:\.[0-9]{1,2})?)\s*(?:kg|kilogram|kgs?)?/i);
+      let match = content.match(/weight[:\s]*([0-9]{1,3}(?:\.[0-9]{1,2})?)\ s*(?:kg|kilogram|kgs?)?/i);
       if (match) {
-        data.weight = { value: match[1], confidence: 0.80 };
-        console.log('Found weight:', data.weight.value, 'confidence:', data.weight.confidence);
+        const value = parseFloat(match[1]);
+        if (value >= 30 && value <= 250) {
+          data.weight = { value: match[1], confidence: 0.85 };
+          console.log('Found weight (Pattern 1):', data.weight.value, 'confidence:', data.weight.confidence);
+        }
       }
-      // Pattern 2: Numbers near "weight" keyword
+      // Pattern 2: "wt" or "body weight" variations
       if (!data.weight) {
-        match = content.match(/weight.*?([0-9]{1,3}(?:\.[0-9]{1,2})?)\s*(?:kg|kgs?|lbs?)?/i);
+        match = content.match(/(?:wt|body\s*weight|weight)[^0-9]{0,30}([0-9]{2,3}(?:\.[0-9]{1,2})?)\s*(?:kg|kgs?|lbs?)?/i);
         if (match) {
-          data.weight = { value: match[1], confidence: 0.70 };
-          console.log('Found weight (pattern 2):', data.weight.value, 'confidence:', data.weight.confidence);
+        const value = parseFloat(match[1]);
+        if (value >= 30 && value <= 250) {
+          data.weight = { value: match[1], confidence: 0.75 };
+          console.log('Found weight (Pattern 2):', data.weight.value, 'confidence:', data.weight.confidence);
+        }
+        }
+      }
+      
+      // Pattern 3: VERY AGGRESSIVE - Any 2-3 digit number 40-200 near "weight" or "wt"
+      if (!data.weight) {
+        match = content.match(/(?:weight|wt|body)[^0-9]{0,50}([4-9][0-9]|1[0-9]{2}|2[0-4][0-9])/i);
+        if (match) {
+          const value = parseInt(match[1]);
+          if (value >= 40 && value <= 200) {
+          data.weight = { value: match[1], confidence: 0.55 };
+          console.log('Found weight (Pattern 3 - aggressive):', data.weight.value, 'confidence:', data.weight.confidence);
+          }
+        }
+      }
+      
+      // Pattern 4: ULTRA FALLBACK - Find "kg" or "lbs" and look for number before it
+      if (!data.weight) {
+        match = content.match(/([4-9][0-9]|1[0-9]{2}|2[0-4][0-9])\s*(?:kg|kgs?|lbs?)/i);
+        if (match) {
+          const value = parseInt(match[1]);
+          if (value >= 40 && value <= 200) {
+            data.weight = { value: match[1], confidence: 0.45 };
+            console.log('Found weight (Pattern 4 - ultra fallback):', data.weight.value, 'confidence:', data.weight.confidence);
+          }
         }
       }
     }
 
     // Extract Height
     if (!data.height) {
-      // Pattern 1: "height: 170 cm" or similar
-      let match = content.match(/height[:\s]*([0-9]{1,3}(?:\.[0-9]{1,2})?)\s*(?:cm|centimeter|inch|in)?/i);
+      // Pattern 1: "height: 170 cm" or "Height 170"
+      let match = content.match(/height[:\s]*([0-9]{2,3}(?:\.[0-9]{1,2})?)\s*(?:cm|centimeter|inch|in)?/i);
       if (match) {
-        data.height = { value: match[1], confidence: 0.80 };
-        console.log('Found height:', data.height.value, 'confidence:', data.height.confidence);
+        const value = parseFloat(match[1]);
+        if (value >= 100 && value <= 250) {
+          data.height = { value: match[1], confidence: 0.80 };
+          console.log('Found height (Pattern 1 - explicit):', data.height.value, 'confidence:', data.height.confidence);
+        }
       }
+      
       // Pattern 2: Numbers near "height" keyword
       if (!data.height) {
-        match = content.match(/height.*?([0-9]{1,3}(?:\.[0-9]{1,2})?)\s*(?:cm|centimeters?|inches?)?/i);
+        match = content.match(/height[^0-9]{0,30}([0-9]{2,3}(?:\.[0-9]{1,2})?)\s*(?:cm|centimeters?|inches?)?/i);
         if (match) {
-          data.height = { value: match[1], confidence: 0.70 };
-          console.log('Found height (pattern 2):', data.height.value, 'confidence:', data.height.confidence);
+          const value = parseFloat(match[1]);
+          if (value >= 100 && value <= 250) {
+            data.height = { value: match[1], confidence: 0.70 };
+            console.log('Found height (Pattern 2 - near height):', data.height.value, 'confidence:', data.height.confidence);
+          }
+        }
+      }
+      
+      // Pattern 3: ULTRA FALLBACK - Find "cm" and look for number before it (100-220 range)
+      if (!data.height) {
+        match = content.match(/(1[0-9]{2}|2[0-4][0-9])\s*(?:cm|centimeters?)/i);
+        if (match) {
+          const value = parseInt(match[1]);
+          if (value >= 100 && value <= 220) {
+            data.height = { value: match[1], confidence: 0.50 };
+            console.log('Found height (Pattern 3 - ultra fallback cm):', data.height.value, 'confidence:', data.height.confidence);
+          }
         }
       }
     }
 
-    // Extract A1C
+    // Extract A1C - Enhanced with better pattern matching
     if (!data.lastA1c) {
-      // Pattern 1: "HbA1c: 7.2%" or "a1c: 7.2"
-      let match = content.match(/(?:hba1c|a1c|hemoglobin\s+a1c)[:\s]*([0-9]{1,2}(?:\.[0-9]{1,2})?)\s*%?/i);
+      // Pattern 1: "HbA1c: 7.2%" or "A1C: 7.2" (most explicit)
+      let match = content.match(/(?:hba1c|a1c|hemoglobin\s+a1c|glycated\s+hemoglobin)[:\s]*([0-9]{1,2}(?:\.[0-9]{1,2})?)\s*%?/i);
       if (match) {
-        data.lastA1c = { value: match[1], confidence: 0.85 };
-        console.log('Found A1C:', data.lastA1c.value, 'confidence:', data.lastA1c.confidence);
+        const value = parseFloat(match[1]);
+        if (value >= 4.0 && value <= 15.0) { // Validate reasonable A1C range (4-15%)
+          data.lastA1c = { value: match[1], confidence: 0.92 };
+          console.log('Found A1C (explicit):', data.lastA1c.value, 'confidence:', data.lastA1c.confidence);
+        }
+      }
+      
+      // Pattern 2: "A1C = 7.2" or "HbA1c level: 6.8"
+      if (!data.lastA1c) {
+        match = content.match(/(?:hba1c|a1c)\s*(?:level|value)?\s*[=:]?\s*([0-9]{1,2}(?:\.[0-9]{1,2})?)\s*%?/i);
+        if (match) {
+          const value = parseFloat(match[1]);
+          if (value >= 4.0 && value <= 15.0) {
+            data.lastA1c = { value: match[1], confidence: 0.88 };
+            console.log('Found A1C (with equals/level):', data.lastA1c.value, 'confidence:', data.lastA1c.confidence);
+          }
+        }
+      }
+      
+      // Pattern 3: Within test results section
+      if (!data.lastA1c) {
+        match = content.match(/(?:test\s+results?|lab\s+results?)[^]*?(?:hba1c|a1c)[:\s]*([0-9]{1,2}(?:\.[0-9]{1,2})?)\s*%?/i);
+        if (match) {
+          const value = parseFloat(match[1]);
+          if (value >= 4.0 && value <= 15.0) {
+            data.lastA1c = { value: match[1], confidence: 0.85 };
+            console.log('Found A1C (in test results):', data.lastA1c.value, 'confidence:', data.lastA1c.confidence);
+          }
+        }
       }
     }
 
@@ -1528,23 +1931,164 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
 
-    // Extract Typical Insulin
+    // Extract Typical Insulin - Enhanced with multiple comprehensive patterns
     if (!data.typicalInsulin) {
-      // Pattern 1: "insulin: 24 units" or "dose: 18u"
-      let match = content.match(/(?:insulin|dose|insulin\s+dose)[:\s]*([0-9]{1,3}(?:\.[0-9]{1,2})?)\s*(?:unit|units?|u)?/i);
+      // Pattern 1: Explicit "Insulin dose:" or "Daily insulin:" or "Total daily insulin:"
+      let match = content.match(/(?:insulin\s+dose|daily\s+insulin|total\s+daily\s+insulin|tdi)[:\s]*([0-9]{1,3}(?:\.[0-9]{1,2})?)\s*(?:unit|units?|u)?/i);
       if (match) {
-        data.typicalInsulin = { value: match[1], confidence: 0.78 };
-        console.log('Found insulin:', data.typicalInsulin.value, 'confidence:', data.typicalInsulin.confidence);
+        const value = parseFloat(match[1]);
+        if (value > 0 && value <= 300) { // Validate reasonable insulin range
+          data.typicalInsulin = { value: match[1], confidence: 0.92 };
+          console.log('Found insulin (explicit dose):', data.typicalInsulin.value, 'confidence:', data.typicalInsulin.confidence);
+        }
+      }
+      
+      // Pattern 2: "Insulin: 24 units" or "Dose: 18u" (original pattern with validation)
+      if (!data.typicalInsulin) {
+        match = content.match(/(?:^|\n|\s)(?:insulin|dose)[:\s]+([0-9]{1,3}(?:\.[0-9]{1,2})?)\s*(?:unit|units?|u)(?:\s|\n|$|,)/i);
+        if (match) {
+          const value = parseFloat(match[1]);
+          if (value > 0 && value <= 300) {
+            data.typicalInsulin = { value: match[1], confidence: 0.88 };
+            console.log('Found insulin (standard):', data.typicalInsulin.value, 'confidence:', data.typicalInsulin.confidence);
+          }
+        }
+      }
+      
+      // Pattern 3: "Basal insulin" + "Bolus insulin" (sum both for total daily dose)
+      if (!data.typicalInsulin) {
+        const basalMatch = content.match(/basal\s+(?:insulin)?[:\s]*([0-9]{1,3}(?:\.[0-9]{1,2})?)\s*(?:unit|units?|u)?/i);
+        const bolusMatch = content.match(/bolus\s+(?:insulin)?[:\s]*([0-9]{1,3}(?:\.[0-9]{1,2})?)\s*(?:unit|units?|u)?/i);
+        
+        if (basalMatch && bolusMatch) {
+          const basal = parseFloat(basalMatch[1]);
+          const bolus = parseFloat(bolusMatch[1]);
+          const total = basal + bolus;
+          if (total > 0 && total <= 300) {
+            data.typicalInsulin = { value: total.toFixed(1), confidence: 0.90 };
+            console.log(`Found insulin (basal: ${basal} + bolus: ${bolus} = ${total}):`, data.typicalInsulin.value, 'confidence:', data.typicalInsulin.confidence);
+          }
+        } else if (basalMatch) {
+          const value = parseFloat(basalMatch[1]);
+          if (value > 0 && value <= 300) {
+            data.typicalInsulin = { value: basalMatch[1], confidence: 0.78 };
+            console.log('Found insulin (basal only):', data.typicalInsulin.value, 'confidence:', data.typicalInsulin.confidence);
+          }
+        }
+      }
+      
+      // Pattern 4: Within medication list containing insulin brands
+      if (!data.typicalInsulin) {
+        const insulinBrands = ['lantus', 'novolog', 'humalog', 'levemir', 'tresiba', 'apidra', 'fiasp', 'toujeo', 'humulin', 'novolin'];
+        for (const brand of insulinBrands) {
+          const regex = new RegExp(`${brand}[\\s:,]+([0-9]{1,3}(?:\\.[0-9]{1,2})?)\\s*(?:unit|units?|u)`, 'i');
+          match = content.match(regex);
+          if (match) {
+            const value = parseFloat(match[1]);
+            if (value > 0 && value <= 300) {
+              data.typicalInsulin = { value: match[1], confidence: 0.85 };
+              console.log(`Found insulin (${brand} medication):`, data.typicalInsulin.value, 'confidence:', data.typicalInsulin.confidence);
+              break;
+            }
+          }
+        }
+      }
+      
+      // Pattern 5: "units per day" or "units/day"
+      if (!data.typicalInsulin) {
+        match = content.match(/([0-9]{1,3}(?:\.[0-9]{1,2})?)\s*(?:unit|units?|u)\s*(?:per\s+day|daily|\/day|\/d)/i);
+        if (match) {
+          const value = parseFloat(match[1]);
+          if (value > 0 && value <= 300) {
+            data.typicalInsulin = { value: match[1], confidence: 0.83 };
+            console.log('Found insulin (units per day):', data.typicalInsulin.value, 'confidence:', data.typicalInsulin.confidence);
+          }
+        }
+      }
+      
+      // Pattern 6: Generic number near "units" in context of insulin/diabetes (lowest confidence)
+      if (!data.typicalInsulin) {
+        const insulinContext = content.match(/(?:insulin|diabetes)[^0-9]{0,50}([0-9]{1,3}(?:\.[0-9]{1,2})?)\s*(?:unit|units?|u)/i);
+        if (insulinContext) {
+          const value = parseFloat(insulinContext[1]);
+          if (value > 0 && value <= 300) {
+            data.typicalInsulin = { value: insulinContext[1], confidence: 0.68 };
+            console.log('Found insulin (context-based):', data.typicalInsulin.value, 'confidence:', data.typicalInsulin.confidence);
+          }
+        }
+      }
+      
+      // Pattern 7: ULTRA AGGRESSIVE - Any number 5-100 near "insulin"
+      if (!data.typicalInsulin) {
+        match = content.match(/insulin[^0-9]{0,30}([5-9]|[1-9][0-9]|100)/i);
+        if (match) {
+          const value = parseInt(match[1]);
+          if (value >= 5 && value <= 100) {
+            data.typicalInsulin = { value: match[1], confidence: 0.55 };
+            console.log('Found insulin (aggressive):', data.typicalInsulin.value, 'confidence:', data.typicalInsulin.confidence);
+          }
+        }
       }
     }
 
     // Extract Target Range
     if (!data.targetRange) {
-      // Pattern 1: "70-180" or "70–180" (en-dash)
-      let match = content.match(/(?:target|range|glucose.*?range)[:\s]*([0-9]{2,3})\s*[-–]\s*([0-9]{2,3})/i);
+      // Pattern 1: "70-180" or "70–180" (en-dash) with explicit labels
+      let match = content.match(/(?:target|range|glucose.*?range|blood\s+sugar\s+range)[:\s]*([0-9]{2,3})\s*[-–]\s*([0-9]{2,3})/i);
       if (match) {
-        data.targetRange = { value: `${match[1]}-${match[2]}`, confidence: 0.85 };
-        console.log('Found target range:', data.targetRange.value, 'confidence:', data.targetRange.confidence);
+        const low = parseInt(match[1]);
+        const high = parseInt(match[2]);
+        if (low >= 50 && low < high && high <= 400) { // Validate reasonable range
+          data.targetRange = { value: `${match[1]}-${match[2]}`, confidence: 0.90 };
+          console.log('Found target range (explicit):', data.targetRange.value, 'confidence:', data.targetRange.confidence);
+        }
+      }
+      
+      // Pattern 2: Generic range pattern near "glucose" or "sugar"
+      if (!data.targetRange) {
+        match = content.match(/(?:glucose|sugar)[^0-9]{0,30}([0-9]{2,3})\s*[-–]\s*([0-9]{2,3})/i);
+        if (match) {
+          const low = parseInt(match[1]);
+          const high = parseInt(match[2]);
+          if (low >= 50 && low < high && high <= 400) {
+            data.targetRange = { value: `${match[1]}-${match[2]}`, confidence: 0.75 };
+            console.log('Found target range (context):', data.targetRange.value, 'confidence:', data.targetRange.confidence);
+          }
+        }
+      }
+    }
+    
+    // Extract additional glucose readings if present (for better AI predictions)
+    if (!data.fastingGlucose) {
+      const match = content.match(/(?:fasting\s+(?:glucose|blood\s+sugar|bg))[:\s]*([0-9]{2,3})\s*(?:mg\/dl)?/i);
+      if (match) {
+        const value = parseInt(match[1]);
+        if (value >= 50 && value <= 600) {
+          data.fastingGlucose = { value: match[1], confidence: 0.88 };
+          console.log('Found fasting glucose:', data.fastingGlucose.value, 'confidence:', data.fastingGlucose.confidence);
+        }
+      }
+    }
+    
+    if (!data.randomGlucose) {
+      const match = content.match(/(?:random\s+(?:glucose|blood\s+sugar|bg))[:\s]*([0-9]{2,3})\s*(?:mg\/dl)?/i);
+      if (match) {
+        const value = parseInt(match[1]);
+        if (value >= 50 && value <= 600) {
+          data.randomGlucose = { value: match[1], confidence: 0.85 };
+          console.log('Found random glucose:', data.randomGlucose.value, 'confidence:', data.randomGlucose.confidence);
+        }
+      }
+    }
+    
+    if (!data.postprandialGlucose) {
+      const match = content.match(/(?:postprandial|post\s+meal|after\s+meal|pp)\s+(?:glucose|blood\s+sugar|bg)[:\s]*([0-9]{2,3})\s*(?:mg\/dl)?/i);
+      if (match) {
+        const value = parseInt(match[1]);
+        if (value >= 50 && value <= 600) {
+          data.postprandialGlucose = { value: match[1], confidence: 0.88 };
+          console.log('Found postprandial glucose:', data.postprandialGlucose.value, 'confidence:', data.postprandialGlucose.confidence);
+        }
       }
     }
 
@@ -1553,25 +2097,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return data;
   }
 
-  app.post('/api/reports/upload', authWithApproval, upload.single('file'), async (req: AuthRequest, res: any) => {
+  app.post('/api/reports/upload', optionalAuthWithApproval, upload.single('file'), async (req: AuthRequest, res: any) => {
     try {
+      console.log('📤 Upload request received');
+      console.log('User:', req.user);
+      console.log('File present:', !!req.file);
+      console.log('Headers:', req.headers.authorization ? 'Token present' : 'No token');
+      
       if (!req.file) {
+        console.error('❌ No file uploaded');
         return res.status(400).json({ message: 'No file uploaded' });
       }
 
-      const { patientId, description } = req.body;
+      console.log('File details:', {
+        name: req.file.originalname,
+        size: req.file.size,
+        type: req.file.mimetype
+      });
+
+      const { patientId, description, skipDbSave } = req.body;
       
-      if (req.user!.role === 'patient' && patientId !== req.user!.userId) {
+      // Log for debugging
+      console.log('Patient ID from body:', patientId);
+      console.log('Skip DB save:', skipDbSave);
+      console.log('User ID from token:', req.user?.userId || 'NO USER');
+      console.log('User role:', req.user?.role || 'NO ROLE');
+      
+      // ONBOARDING MODE: If skipDbSave is true, just acknowledge upload without saving to DB
+      // This allows users in onboarding (not yet in DB) to upload files for parsing
+      if (skipDbSave === 'true' || skipDbSave === true) {
+        console.log('🔵 ONBOARDING MODE: Skipping database save, file uploaded for parsing only');
+        return res.status(200).json({
+          message: 'File uploaded successfully (parsing mode)',
+          tempFile: true,
+          fileName: req.file.originalname,
+          fileType: req.file.mimetype,
+          fileSize: req.file.size,
+        });
+      }
+      
+      // NORMAL MODE: Save to database (requires authenticated user)
+      if (!req.user || !req.user.userId) {
+        console.error('❌ No authenticated user for database save');
+        return res.status(401).json({ 
+          message: 'Authentication required to save report to database. Use skipDbSave=true for onboarding.',
+        });
+      }
+      
+      // Allow patients to only upload for themselves (compare as strings)
+      if (req.user.role === 'patient' && patientId && patientId !== req.user.userId) {
+        console.error('❌ Access denied - patient trying to upload for different user');
         return res.status(403).json({ message: 'Access denied' });
       }
 
+      console.log('Creating medical report...');
       // For Railway deployment, we store file metadata but not the actual file
       // In a production environment, you would integrate with a storage service like AWS S3
       const fileUrl = `memory://${req.file.buffer.length}-bytes`; // Placeholder for Railway
 
       const report = await storage.createMedicalReport(
-        patientId || req.user!.userId,
-        req.user!.userId,
+        patientId || req.user.userId,
+        req.user.userId,
         {
           fileName: req.file.originalname,
           fileUrl: fileUrl,
@@ -1581,6 +2167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       );
 
+      console.log('✅ Report uploaded successfully:', report._id);
       res.status(201).json({ 
         message: 'Report uploaded successfully',
         report: {
@@ -1591,28 +2178,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
     } catch (error: any) {
-      res.status(500).json({ message: error.message || 'Failed to upload report' });
+      console.error('❌ Upload error:', error);
+      console.error('Error stack:', error.stack);
+      res.status(500).json({ 
+        message: error.message || 'Failed to upload report',
+        error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
     }
   });
 
-  app.get('/api/reports', authWithApproval, async (req: AuthRequest, res: any) => {
+  app.get('/api/reports', optionalAuthWithApproval, async (req: AuthRequest, res: any) => {
     try {
+      console.log('📋 Reports list request received');
+      console.log('User:', req.user);
+      
       const patientId = req.query.patientId as string || req.user!.userId;
       
       if (req.user!.role === 'patient' && patientId !== req.user!.userId) {
+        console.error('❌ Access denied - patient trying to access different user reports');
         return res.status(403).json({ message: 'Access denied' });
       }
 
       const reports = await storage.getMedicalReportsByPatient(patientId);
+      console.log(`✅ Found ${reports.length} reports for user ${patientId}`);
 
       res.json({ reports });
     } catch (error: any) {
+      console.error('❌ Error fetching reports:', error);
       res.status(500).json({ message: error.message || 'Failed to fetch reports' });
     }
   });
 
   // Get patient details for a specific report
-  app.get('/api/reports/:reportId/patient', authWithApproval, async (req: AuthRequest, res: any) => {
+  app.get('/api/reports/:reportId/patient', optionalAuthWithApproval, async (req: AuthRequest, res: any) => {
     try {
       const { reportId } = req.params;
       

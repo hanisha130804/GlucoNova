@@ -88,10 +88,18 @@ export default function LoginPage() {
       navigate('/dashboard');
     } catch (err: any) {
       const errorMessage = err.message || 'Login failed';
-      setError(errorMessage);
+      // Improve error message clarity for users
+      let displayMessage = errorMessage;
+      if (errorMessage.includes('Invalid credentials')) {
+        displayMessage = 'Invalid email or password. Please check your credentials or register a new account.';
+      } else if (errorMessage.includes('Unauthorized') || errorMessage.includes('401')) {
+        displayMessage = 'Authentication failed. Please try again or create a new account.';
+      }
+      
+      setError(displayMessage);
       toast({
         title: t('auth.loginError'),
-        description: errorMessage,
+        description: displayMessage,
         variant: 'destructive',
       });
       console.error('Login error:', err);
@@ -248,7 +256,18 @@ export default function LoginPage() {
           
           {error && (
             <div className="mb-4 p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-200 text-sm">
-              {error}
+              <div className="font-semibold mb-2">❌ {error}</div>
+              <div className="text-xs text-red-300">
+                💡 First time? You need to <Link 
+                  href="/role-selection" 
+                  className="underline text-red-200 hover:text-red-100"
+                  onClick={(e: React.MouseEvent) => {
+                    e.preventDefault();
+                    window.history.pushState({}, '', '/role-selection');
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                  }}
+                >create an account</Link> before logging in.
+              </div>
             </div>
           )}
           

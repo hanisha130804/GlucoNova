@@ -1,0 +1,282 @@
+{
+  "metformin-500": {
+    "id": "metformin-500",
+    "name": "Metformin",
+    "active_ingredient": "metformin",
+    "strength_mg": 500,
+    "form": "tablet",
+    "brand_names": ["Glucophage", "Diabex", "Glycomet"],
+    "class": "Biguanide",
+    "indications": ["Type 2 Diabetes", "Prediabetes", "PCOS"],
+    "notes": "Start 500mg once daily with meals; titrate as tolerated. Maximum 2000-2550 mg/day.",
+    "safety_flags": [],
+    "interactions": ["Alcohol", "Iodinated contrast agents", "Some diuretics"],
+    "pharmacology_effects": {
+      "increases_hypoglycemia_risk": false,
+      "reduces_insulin_requirement_pct": 0,
+      "increases_insulin_sensitivity_pct": 5
+    },
+    "similar_ids": ["metformin-1000"],
+    "meta": {"source": "local_seed"}
+  },
+  "metformin-1000": {
+    "id": "metformin-1000",
+    "name": "Metformin",
+    "active_ingredient": "metformin",
+    "strength_mg": 1000,
+    "form": "tablet",
+    "brand_names": ["Glucophage", "Diabex", "Glycomet"],
+    "class": "Biguanide",
+    "indications": ["Type 2 Diabetes", "Prediabetes"],
+    "notes": "Usually given 500mg twice daily or 1000mg once/twice daily. Maximum 2000-2550 mg/day.",
+    "safety_flags": [],
+    "interactions": ["Alcohol", "Contrast media", "Some antibiotics"],
+    "pharmacology_effects": {
+      "increases_hypoglycemia_risk": false,
+      "reduces_insulin_requirement_pct": 0,
+      "increases_insulin_sensitivity_pct": 5
+    },
+    "similar_ids": ["metformin-500"],
+    "meta": {"source": "local_seed"}
+  },
+  "glimepiride-1": {
+    "id": "glimepiride-1",
+    "name": "Glimepiride",
+    "active_ingredient": "glimepiride",
+    "strength_mg": 1,
+    "form": "tablet",
+    "brand_names": ["Amaryl", "Glimepride"],
+    "class": "Sulfonylurea",
+    "indications": ["Type 2 Diabetes"],
+    "notes": "Start 1-2 mg once daily with breakfast. Maximum 8 mg/day. Risk of hypoglycemia.",
+    "safety_flags": ["hypoglycemia_risk"],
+    "interactions": ["NSAIDs", "Salicylates", "Some antibiotics", "Alcohol"],
+    "pharmacology_effects": {
+      "increases_hypoglycemia_risk": true,
+      "reduces_insulin_requirement_pct": 15,
+      "increases_insulin_sensitivity_pct": 0
+    },
+    "similar_ids": ["gliclazide-80"],
+    "meta": {"source": "local_seed"}
+  },
+  "gliclazide-80": {
+    "id": "gliclazide-80",
+    "name": "Gliclazide",
+    "active_ingredient": "gliclazide",
+    "strength_mg": 80,
+    "form": "tablet",
+    "brand_names": ["Diamicron", "Gliclazide MR"],
+    "class": "Sulfonylurea",
+    "indications": ["Type 2 Diabetes"],
+    "notes": "80-160 mg daily with meals. Modified-release formulation available. Can cause hypoglycemia.",
+    "safety_flags": ["hypoglycemia_risk"],
+    "interactions": ["Beta-blockers", "Alcohol", "Other diabetes medications"],
+    "pharmacology_effects": {
+      "increases_hypoglycemia_risk": true,
+      "reduces_insulin_requirement_pct": 15,
+      "increases_insulin_sensitivity_pct": 0
+    },
+    "similar_ids": ["glimepiride-1"],
+    "meta": {"source": "local_seed"}
+  },
+  "sitagliptin-100": {
+    "id": "sitagliptin-100",
+    "name": "Sitagliptin",
+    "active_ingredient": "sitagliptin",
+    "strength_mg": 100,
+    "form": "tablet",
+    "brand_names": ["Januvia"],
+    "class": "DPP-4 Inhibitor",
+    "indications": ["Type 2 Diabetes"],
+    "notes": "100 mg once daily regardless of meals. Adjust dose if eGFR <30. Low hypoglycemia risk.",
+    "safety_flags": [],
+    "interactions": ["Moderate interactions", "Generally safe with other classes", "Minimal food interactions"],
+    "pharmacology_effects": {
+      "increases_hypoglycemia_risk": false,
+      "reduces_insulin_requirement_pct": 5,
+      "increases_insulin_sensitivity_pct": 0
+    },
+    "similar_ids": ["alogliptin-25", "linagliptin-5"],
+    "meta": {"source": "local_seed"}
+  },
+  "empagliflozin-10": {
+    "id": "empagliflozin-10",
+    "name": "Empagliflozin",
+    "active_ingredient": "empagliflozin",
+    "strength_mg": 10,
+    "form": "tablet",
+    "brand_names": ["Jardiance"],
+    "class": "SGLT2 Inhibitor",
+    "indications": ["Type 2 Diabetes", "Heart failure", "CKD"],
+    "notes": "10 mg once daily. Benefits beyond glucose control. Monitor for urinary infections.",
+    "safety_flags": ["dka_risk_with_insulin_reduction"],
+    "interactions": ["Minimal drug interactions", "No dosage adjustment needed for kidney disease <60"],
+    "pharmacology_effects": {
+      "increases_hypoglycemia_risk": false,
+      "reduces_insulin_requirement_pct": 0,
+      "increases_insulin_sensitivity_pct": 10
+    },
+    "similar_ids": ["dapagliflozin-10"],
+    "meta": {"source": "local_seed"}
+  },
+  "insulin-glargine-100": {
+    "id": "insulin-glargine-100",
+    "name": "Insulin Glargine",
+    "active_ingredient": "insulin glargine",
+    "strength_mg": 100,
+    "form": "injection (units/mL)",
+    "brand_names": ["Lantus", "Basaglar", "Toujeo"],
+    "class": "Long-acting Insulin",
+    "indications": ["Type 1 Diabetes", "Type 2 Diabetes"],
+    "notes": "Basal insulin given once daily at bedtime or morning. Peak-less profile.",
+    "safety_flags": ["hypoglycemia_risk"],
+    "interactions": ["GLP-1 agonists", "Other insulins (basal-bolus)", "Some diabetes medications"],
+    "pharmacology_effects": {
+      "increases_hypoglycemia_risk": true,
+      "reduces_insulin_requirement_pct": 0,
+      "increases_insulin_sensitivity_pct": 0
+    },
+    "similar_ids": ["insulin-lispro-100"],
+    "meta": {"source": "local_seed"}
+  },
+  "insulin-lispro-100": {
+    "id": "insulin-lispro-100",
+    "name": "Insulin Lispro",
+    "active_ingredient": "insulin lispro",
+    "strength_mg": 100,
+    "form": "injection (units/mL)",
+    "brand_names": ["Humalog", "Admelog"],
+    "class": "Rapid-acting Insulin",
+    "indications": ["Type 1 Diabetes", "Type 2 Diabetes"],
+    "notes": "Bolus insulin taken before meals. Onset ~15 min, peak ~1-2 hours.",
+    "safety_flags": ["hypoglycemia_risk"],
+    "interactions": ["All diabetes medications", "Other insulins (basal-bolus regimen)"],
+    "pharmacology_effects": {
+      "increases_hypoglycemia_risk": true,
+      "reduces_insulin_requirement_pct": 0,
+      "increases_insulin_sensitivity_pct": 0
+    },
+    "similar_ids": ["insulin-glargine-100"],
+    "meta": {"source": "local_seed"}
+  },
+  "pioglitazone-15": {
+    "id": "pioglitazone-15",
+    "name": "Pioglitazone",
+    "active_ingredient": "pioglitazone",
+    "strength_mg": 15,
+    "form": "tablet",
+    "brand_names": ["Actos"],
+    "class": "Thiazolidinedione",
+    "indications": ["Type 2 Diabetes"],
+    "notes": "15-45 mg once daily with or without food. Monitor for weight gain and fluid retention.",
+    "safety_flags": [],
+    "interactions": ["Insulin (increased hypoglycemia risk)", "Other antidiabetic agents"],
+    "pharmacology_effects": {
+      "increases_hypoglycemia_risk": false,
+      "reduces_insulin_requirement_pct": 10,
+      "increases_insulin_sensitivity_pct": 20
+    },
+    "similar_ids": [],
+    "meta": {"source": "local_seed"}
+  },
+  "alogliptin-25": {
+    "id": "alogliptin-25",
+    "name": "Alogliptin",
+    "active_ingredient": "alogliptin",
+    "strength_mg": 25,
+    "form": "tablet",
+    "brand_names": ["Nesina"],
+    "class": "DPP-4 Inhibitor",
+    "indications": ["Type 2 Diabetes"],
+    "notes": "25 mg once daily. Reduce dose if eGFR <30.",
+    "safety_flags": [],
+    "interactions": ["Moderate interactions", "Safe with most medications"],
+    "pharmacology_effects": {
+      "increases_hypoglycemia_risk": false,
+      "reduces_insulin_requirement_pct": 5,
+      "increases_insulin_sensitivity_pct": 0
+    },
+    "similar_ids": ["sitagliptin-100", "linagliptin-5"],
+    "meta": {"source": "local_seed"}
+  },
+  "liraglutide-1.2": {
+    "id": "liraglutide-1.2",
+    "name": "Liraglutide",
+    "active_ingredient": "liraglutide",
+    "strength_mg": 1.2,
+    "form": "injection (subcutaneous)",
+    "brand_names": ["Victoza", "Saxenda"],
+    "class": "GLP-1 Agonist",
+    "indications": ["Type 2 Diabetes", "Weight management"],
+    "notes": "0.6-1.8 mg once daily. Titrate slowly. May cause nausea initially.",
+    "safety_flags": [],
+    "interactions": ["Insulin (increased hypoglycemia risk)", "Other GLP-1 agents (don't combine)"],
+    "pharmacology_effects": {
+      "increases_hypoglycemia_risk": false,
+      "reduces_insulin_requirement_pct": 0,
+      "increases_insulin_sensitivity_pct": 15
+    },
+    "similar_ids": [],
+    "meta": {"source": "local_seed"}
+  },
+  "dapagliflozin-10": {
+    "id": "dapagliflozin-10",
+    "name": "Dapagliflozin",
+    "active_ingredient": "dapagliflozin",
+    "strength_mg": 10,
+    "form": "tablet",
+    "brand_names": ["Farxiga"],
+    "class": "SGLT2 Inhibitor",
+    "indications": ["Type 2 Diabetes", "Heart failure", "CKD"],
+    "notes": "5-10 mg once daily. May increase urinary/genital infections.",
+    "safety_flags": ["dka_risk_with_insulin_reduction"],
+    "interactions": ["Minimal interactions", "Safe with most medications"],
+    "pharmacology_effects": {
+      "increases_hypoglycemia_risk": false,
+      "reduces_insulin_requirement_pct": 0,
+      "increases_insulin_sensitivity_pct": 10
+    },
+    "similar_ids": ["empagliflozin-10"],
+    "meta": {"source": "local_seed"}
+  },
+  "linagliptin-5": {
+    "id": "linagliptin-5",
+    "name": "Linagliptin",
+    "active_ingredient": "linagliptin",
+    "strength_mg": 5,
+    "form": "tablet",
+    "brand_names": ["Tradjenta"],
+    "class": "DPP-4 Inhibitor",
+    "indications": ["Type 2 Diabetes"],
+    "notes": "5 mg once daily. No renal dose adjustment needed.",
+    "safety_flags": [],
+    "interactions": ["Minimal interactions", "Safe with renal impairment"],
+    "pharmacology_effects": {
+      "increases_hypoglycemia_risk": false,
+      "reduces_insulin_requirement_pct": 5,
+      "increases_insulin_sensitivity_pct": 0
+    },
+    "similar_ids": ["sitagliptin-100", "alogliptin-25"],
+    "meta": {"source": "local_seed"}
+  },
+  "acarbose-100": {
+    "id": "acarbose-100",
+    "name": "Acarbose",
+    "active_ingredient": "acarbose",
+    "strength_mg": 100,
+    "form": "tablet",
+    "brand_names": ["Precose", "Glucobay"],
+    "class": "Alpha-glucosidase Inhibitor",
+    "indications": ["Type 2 Diabetes"],
+    "notes": "50-100 mg three times daily with first bite of meals. Take with food.",
+    "safety_flags": [],
+    "interactions": ["Minimal interactions", "Some GI medications may interfere"],
+    "pharmacology_effects": {
+      "increases_hypoglycemia_risk": false,
+      "reduces_insulin_requirement_pct": 0,
+      "increases_insulin_sensitivity_pct": 0
+    },
+    "similar_ids": [],
+    "meta": {"source": "local_seed"}
+  }
+}

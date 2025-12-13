@@ -68,6 +68,14 @@ export default function MedicalReportsPage() {
   const uploadMutation = useMutation({
     mutationFn: async (formData: FormData) => {
       const token = localStorage.getItem('token');
+      
+      console.log('📤 Starting upload mutation');
+      console.log('Token exists:', !!token);
+      console.log('FormData contents:');
+      console.log('  file:', formData.get('file'));
+      console.log('  patientId:', formData.get('patientId'));
+      console.log('  description:', formData.get('description'));
+      
       const response = await fetch('/api/reports/upload', {
         method: 'POST',
         headers: {
@@ -75,13 +83,18 @@ export default function MedicalReportsPage() {
         },
         body: formData,
       });
+      
+      console.log('Upload response status:', response.status);
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({ message: 'Upload failed' }));
+        console.error('❌ Upload failed:', response.status, error);
         throw new Error(error.message || 'Upload failed');
       }
 
-      return response.json();
+      const result = await response.json();
+      console.log('✅ Upload successful:', result);
+      return result;
     },
     onSuccess: () => {
       toast({
@@ -106,6 +119,10 @@ export default function MedicalReportsPage() {
   const handleFileUpload = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
+    console.log('handleFileUpload triggered');
+    console.log('User object:', user);
+    console.log('User ID:', user?.id);
+    
     if (!fileInputRef.current?.files?.length) {
       toast({
         title: 'No file selected',
@@ -117,7 +134,13 @@ export default function MedicalReportsPage() {
 
     const formData = new FormData();
     formData.append('file', fileInputRef.current.files[0]);
-    formData.append('patientId', user?.id || '');
+    
+    // Use user.id directly (this matches the _id from the token)
+    const patientId = user?.id || '';
+    formData.append('patientId', patientId);
+    
+    console.log('Setting patientId to:', patientId);
+    
     if (description) {
       formData.append('description', description);
     }

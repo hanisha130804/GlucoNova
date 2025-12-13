@@ -293,7 +293,13 @@ export default function GlucoseInsulinPage() {
                             <div>
                               <p className="text-sm font-medium">{entry.glucose} mg/dL</p>
                               <p className="text-xs text-muted-foreground">
-                                {new Date(entry.timestamp).toLocaleDateString()} {new Date(entry.timestamp).toLocaleTimeString()}
+                                {new Date(entry.timestamp).toLocaleString(undefined, {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  hour12: true
+                                })}
                               </p>
                             </div>
                             <div className="text-right">

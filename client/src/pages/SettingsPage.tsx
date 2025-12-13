@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useTranslation } from 'react-i18next';
+import { changeLanguage } from '@/i18n/config';
 import AppSidebar from '@/components/AppSidebar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -36,7 +37,8 @@ export default function SettingsPage() {
   const [medicationReminders, setMedicationReminders] = useState(true);
 
   const handleLanguageChange = (language: string) => {
-    i18n.changeLanguage(language);
+    // Use centralized changeLanguage to update localStorage and i18n
+    changeLanguage(language);
     toast({
       title: t('settings.languageChanged'),
       description: t('settings.languageChangedDesc'),
