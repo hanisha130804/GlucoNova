@@ -358,6 +358,17 @@ function Router() {
       </Route>
 
       {/* New Merged Routes (Redesigned Sidebar) */}
+      <Route path="/meal-tracking">
+        {(params) => (
+          <Suspense fallback={<LoadingFallback />}>
+            <ProtectedRoute 
+              component={AIFoodLogPage}
+              allowedRoles={['patient']}
+              {...params}
+            />
+          </Suspense>
+        )}
+      </Route>
       <Route path="/glucose-insulin">
         {(params) => (
           <Suspense fallback={<LoadingFallback />}>

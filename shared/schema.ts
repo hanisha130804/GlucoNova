@@ -25,8 +25,8 @@ export const healthData = pgTable("health_data", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   glucose: integer("glucose").notNull(),
-  insulin: integer("insulin").notNull(),
-  carbs: integer("carbs").notNull(),
+  insulin: json("insulin").$type<{ taken: boolean; type?: string; dose?: number }>(),
+  carbs: json("carbs").$type<{ consumed: boolean; meal?: string; grams?: number; notes?: string }>(),
   activityLevel: varchar("activity_level", { length: 50 }).$type<ActivityLevel>(),
   notes: text("notes"),
   timestamp: timestamp("timestamp").notNull().defaultNow(),
@@ -126,15 +126,32 @@ export const loginSchema = z.object({
 });
 
 export const insertHealthDataSchema = createInsertSchema(healthData, {
-  glucose: z.coerce.number().min(0).max(1000),
-  insulin: z.coerce.number().min(0).max(200),
-  carbs: z.coerce.number().min(0).max(500),
+  glucose: z.coerce.number().min(40, "Glucose must be at least 40 mg/dL").max(400, "Glucose cannot exceed 400 mg/dL"),
+  insulin: z.object({
+    taken: z.boolean(),
+    type: z.string().optional(),
+    dose: z.coerce.number().min(0).optional(),
+  }).optional(),
+  carbs: z.object({
+    consumed: z.boolean(),
+    meal: z.string().optional(),
+    grams: z.coerce.number().min(0).optional(),
+    notes: z.string().optional(),
+  }).optional(),
   activityLevel: z.enum(activityLevels).optional(),
   notes: z.string().optional(),
 }).omit({
   id: true,
   userId: true,
-  timestamp: true,
+});
+
+// Legacy schema for backward compatibility (old simple number format)
+export const healthDataSchema = z.object({
+  glucose: z.coerce.number().min(0).max(1000),
+  insulin: z.coerce.number().min(0).max(200),
+  carbs: z.coerce.number().min(0).max(500),
+  activityLevel: z.enum(activityLevels).optional(),
+  notes: z.string().optional(),
 });
 
 export const insertMealSchema = createInsertSchema(meals, {
@@ -326,6 +343,3 @@ export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
 export type InsertMedication = z.infer<typeof insertMedicationSchema>;
 export type InsertAIFoodLog = z.infer<typeof insertAIFoodLogSchema>;
 
-// Legacy schema names for backward compatibility
-export const healthDataSchema = insertHealthDataSchema;
-export const mealSchema = insertMealSchema;

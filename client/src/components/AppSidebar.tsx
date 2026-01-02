@@ -32,21 +32,21 @@ import { useAuth } from '@/lib/auth-context';
 import SettingsDrawer from '@/components/SettingsDrawer';
 import { useTranslation } from 'react-i18next';
 
-// Redesigned Patient navigation menu - Clean 7-item structure
+// Redesigned Patient navigation menu - Clear and simple labels
 const patientMenuItems = [
-  { title: 'navigation.overview', icon: LayoutDashboard, url: '/dashboard', section: 'health' },
-  { title: 'navigation.glucoseInsulin', icon: Activity, url: '/glucose-insulin', section: 'health' },
-  { title: 'navigation.aiFoodLog', icon: Utensils, url: '/ai-food-log', section: 'health' },
+  { title: 'navigation.dashboard', icon: LayoutDashboard, url: '/dashboard', section: 'health' },
+  { title: 'navigation.glucoseLogInsulinHelper', icon: Activity, url: '/glucose-insulin', section: 'health' },
+  { title: 'navigation.mealTracking', icon: Utensils, url: '/ai-food-log', section: 'health' },
   { title: 'navigation.suggestionsActivity', icon: Sparkles, url: '/suggestions-activity', section: 'health' },
-  { title: 'navigation.reportsDocuments', icon: FolderOpen, url: '/reports-documents', section: 'medical' },
-  { title: 'navigation.aiCoach', icon: Brain, url: '/ai-insights', section: 'ai' },
+  { title: 'navigation.medicalReports', icon: FolderOpen, url: '/reports-documents', section: 'medical' },
+  { title: 'navigation.askAIAssistant', icon: Brain, url: '/ai-insights', section: 'ai' },
   { title: 'navigation.careTeam', icon: Users, url: '/care-team', section: 'care' },
   { title: 'navigation.settings', icon: Settings, url: '/settings', section: 'account' },
 ];
 
 // Doctor navigation menu - Clinical workspace
 const doctorMenuItems = [
-  { title: 'navigation.overview', icon: LayoutDashboard, url: '/dashboard', section: 'clinical' },
+  { title: 'navigation.dashboard', icon: LayoutDashboard, url: '/dashboard', section: 'clinical' },
   { title: 'navigation.patientDirectory', icon: Users, url: '/patients', section: 'patients' },
   { title: 'navigation.clinicalAlerts', icon: BellRing, url: '/alerts', section: 'patients' },
   { title: 'navigation.reportsAnalytics', icon: BarChart3, url: '/reports', section: 'analytics' },
@@ -56,7 +56,7 @@ const doctorMenuItems = [
 ];
 
 const adminMenuItems = [
-  { title: 'navigation.overview', icon: LayoutDashboard, url: '/dashboard', section: 'dashboard' },
+  { title: 'navigation.dashboard', icon: LayoutDashboard, url: '/dashboard', section: 'dashboard' },
   { title: 'navigation.users', icon: User, url: '/users', section: 'management' },
   { title: 'navigation.reports', icon: FileText, url: '/reports', section: 'management' },
   { title: 'navigation.settings', icon: Settings, url: '/settings', section: 'settings' },
@@ -99,7 +99,7 @@ export default function AppSidebar() {
       <aside 
         className="fixed left-0 top-0 h-screen flex flex-col"
         style={{ 
-          width: '280px',
+          width: '320px',
           padding: '0',
           zIndex: 100,
           background: 'linear-gradient(180deg, #1a2332 0%, #0f1419 100%)',
@@ -246,7 +246,7 @@ export default function AppSidebar() {
                         data-testid={`link-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
                       >
                         <Icon 
-                          className="flex-shrink-0" 
+                          className="flex-shrink-0 transition-all duration-300 group-hover:scale-110" 
                           style={{ 
                             width: '18px', 
                             height: '18px', 
@@ -285,7 +285,7 @@ export default function AppSidebar() {
             {/* Upload Report Button */}
             <Link href="/reports" className="flex-1">
               <button
-                className="w-full rounded-xl flex items-center justify-center transition-all duration-300"
+                className="w-full rounded-xl flex items-center justify-center transition-all duration-300 group"
                 style={{
                   height: '56px',
                   background: 'rgba(33, 200, 155, 0.12)',
@@ -305,7 +305,7 @@ export default function AppSidebar() {
                 data-testid="button-upload"
                 aria-label="Upload Report"
               >
-                <Upload style={{ width: '24px', height: '24px', strokeWidth: 2.5 }} />
+                <Upload className="group-hover:scale-110 group-hover:-translate-y-1 transition-all duration-300" style={{ width: '24px', height: '24px', strokeWidth: 2.5 }} />
               </button>
             </Link>
           </div>
@@ -313,7 +313,7 @@ export default function AppSidebar() {
           {/* Logout Button */}
           <button
             onClick={logout}
-            className="w-full flex items-center justify-center gap-2 rounded-xl transition-all duration-300"
+            className="w-full flex items-center justify-center gap-2 rounded-xl transition-all duration-300 group"
             style={{
               padding: '14px',
               fontSize: '14px',
@@ -332,7 +332,7 @@ export default function AppSidebar() {
             }}
             data-testid="button-logout"
           >
-            <LogOut style={{ width: '16px', height: '16px' }} />
+            <LogOut className="group-hover:scale-110 transition-transform duration-300" style={{ width: '16px', height: '16px' }} />
             <span>{t('common.logout')}</span>
           </button>
         </div>

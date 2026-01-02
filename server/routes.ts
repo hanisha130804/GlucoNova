@@ -6,7 +6,7 @@ import fs from "fs";
 import { storage } from "./storage";
 import { authMiddleware, roleMiddleware, approvalMiddleware, authWithApproval, optionalAuthWithApproval, generateToken, type AuthRequest } from "./middleware/auth";
 import { hashPassword, comparePassword } from "./utils/password";
-import { insertUserSchema, loginSchema, healthDataSchema, mealSchema, insertUserProfileSchema, insertMedicationSchema } from "@shared/schema";
+import { insertUserSchema, loginSchema, insertHealthDataSchema, insertMealSchema, insertUserProfileSchema, insertMedicationSchema, healthDataSchema } from "@shared/schema";
 import { consolidate } from "./services/parserService";
 import { inferDiabetesType } from "./services/diabetesClassifier";
 import { calculateInsulinDose, estimateICR, estimateISF, scanPatientMeds } from "./services/insulinCalculator";
@@ -759,7 +759,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post('/api/health-data', optionalAuthWithApproval, async (req: AuthRequest, res: any) => {
     try {
-      const validatedData = healthDataSchema.parse(req.body);
+      const validatedData = insertHealthDataSchema.parse(req.body);
       const healthData = await storage.createHealthData(req.user!.userId, validatedData);
       
       res.status(201).json({ message: 'Health data recorded successfully', data: healthData });
@@ -796,7 +796,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post('/api/meals', authMiddleware, roleMiddleware('patient'), async (req: AuthRequest, res) => {
     try {
-      const validatedData = mealSchema.parse(req.body);
+      const validatedData = insertMealSchema.parse(req.body);
       const meal = await storage.createMeal(req.user!.userId, validatedData);
       
       res.status(201).json({ message: 'Meal logged successfully', data: meal });

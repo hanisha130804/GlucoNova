@@ -16,7 +16,7 @@ export default function AIInsightsPage() {
   return (
     <div className="flex h-screen w-full bg-gradient-to-br from-neutral-900 via-zinc-900 to-neutral-950 relative overflow-hidden">
       <AppSidebar />
-      <div className="flex flex-col flex-1 overflow-hidden relative" style={{ zIndex: 10, marginLeft: '280px' }}>
+      <div className="flex flex-col flex-1 overflow-hidden relative" style={{ zIndex: 10, marginLeft: '320px' }}>
         <header className="flex items-center justify-between border-b border-border" style={{ height: '72px', padding: '0 24px' }}>
           <div className="flex items-center gap-4">
             <Zap className="w-6 h-6 text-primary" />

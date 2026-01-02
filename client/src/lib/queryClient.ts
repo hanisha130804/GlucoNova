@@ -31,10 +31,15 @@ export async function apiRequest(
     credentials: "include",
   });
 
-  // If skip auth mode and 401, don't mock the response - let it fail
-  // The frontend has its own local analysis fallback
-  if (skipAuth === 'true' && res.status === 401) {
-    console.log('Skip auth mode: 401 detected, frontend will use local analysis');
+  // If skip auth mode and error, provide helpful message
+  if (skipAuth === 'true' && (res.status === 401 || res.status === 400)) {
+    console.log('⚠️ Skip auth mode: API call blocked, user needs to register');
+    const errorData = await res.text();
+    const message = errorData.includes('authentication') 
+      ? 'Please complete registration to save and view data'
+      : 'Please login or register to use this feature';
+    
+    throw new Error(message);
   }
 
   await throwIfResNotOk(res);

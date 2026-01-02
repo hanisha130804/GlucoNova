@@ -56,7 +56,7 @@ export default function SettingsPage() {
     <div className="flex min-h-screen" style={{ background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%)' }}>
       <AppSidebar />
       
-      <main className="flex-1" style={{ marginLeft: '280px', padding: '40px' }}>
+      <main className="flex-1" style={{ marginLeft: '320px', padding: '40px' }}>
         <div className="max-w-5xl mx-auto space-y-8">
           {/* Header */}
           <div className="flex items-center justify-between">

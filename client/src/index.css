@@ -197,6 +197,121 @@
  */
 @layer utilities {
 
+  /* Glassmorphism Card System */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+    border-radius: 20px !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.15),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+    padding: 24px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+  }
+
+  .glass-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, 
+      rgba(34, 211, 238, 0.8), 
+      rgba(45, 212, 191, 0.8),
+      rgba(52, 211, 153, 0.8)
+    ) !important;
+    border-radius: 20px 20px 0 0;
+    z-index: 1;
+  }
+
+  .glass-card:hover {
+    transform: translateY(-4px) !important;
+    box-shadow: 
+      0 16px 48px rgba(0, 0, 0, 0.2),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.2) !important;
+    background: rgba(255, 255, 255, 0.12) !important;
+    border-color: rgba(255, 255, 255, 0.25) !important;
+  }
+
+  /* Gradient Variations */
+  .card-gradient-blue {
+    background: linear-gradient(135deg, 
+      rgba(101, 126, 234, 0.15) 0%, 
+      rgba(118, 75, 162, 0.15) 100%
+    ) !important;
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+    border: 1px solid rgba(101, 126, 234, 0.3) !important;
+  }
+
+  .card-gradient-blue:hover {
+    background: linear-gradient(135deg, 
+      rgba(101, 126, 234, 0.25) 0%, 
+      rgba(118, 75, 162, 0.25) 100%
+    ) !important;
+    box-shadow: 0 16px 48px rgba(101, 126, 234, 0.3) !important;
+  }
+
+  .card-gradient-green {
+    background: linear-gradient(135deg, 
+      rgba(72, 187, 120, 0.15) 0%, 
+      rgba(56, 189, 248, 0.15) 100%
+    ) !important;
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+    border: 1px solid rgba(72, 187, 120, 0.3) !important;
+  }
+
+  .card-gradient-green:hover {
+    background: linear-gradient(135deg, 
+      rgba(72, 187, 120, 0.25) 0%, 
+      rgba(56, 189, 248, 0.25) 100%
+    ) !important;
+    box-shadow: 0 16px 48px rgba(72, 187, 120, 0.3) !important;
+  }
+
+  .card-gradient-purple {
+    background: linear-gradient(135deg, 
+      rgba(168, 85, 247, 0.15) 0%, 
+      rgba(236, 72, 153, 0.15) 100%
+    ) !important;
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+    border: 1px solid rgba(168, 85, 247, 0.3) !important;
+  }
+
+  .card-gradient-purple:hover {
+    background: linear-gradient(135deg, 
+      rgba(168, 85, 247, 0.25) 0%, 
+      rgba(236, 72, 153, 0.25) 100%
+    ) !important;
+    box-shadow: 0 16px 48px rgba(168, 85, 247, 0.3) !important;
+  }
+
+  .card-gradient-cyan {
+    background: linear-gradient(135deg, 
+      rgba(34, 211, 238, 0.15) 0%, 
+      rgba(59, 130, 246, 0.15) 100%
+    ) !important;
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+    border: 1px solid rgba(34, 211, 238, 0.3) !important;
+  }
+
+  .card-gradient-cyan:hover {
+    background: linear-gradient(135deg, 
+      rgba(34, 211, 238, 0.25) 0%, 
+      rgba(59, 130, 246, 0.25) 100%
+    ) !important;
+    box-shadow: 0 16px 48px rgba(34, 211, 238, 0.3) !important;
+  }
+
   /* Hide ugly search cancel button in Chrome until we can style it properly */
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;
@@ -323,13 +438,49 @@
 
 /* Glassmorphism base styling */
 @layer utilities {
+  /* Primary glass card - for main containers */
   .glass-card {
     background: rgba(255, 255, 255, 0.03);
-    border-radius: 12px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 2px 8px rgba(0, 0, 0, 0.2);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+  }
+
+  .glass-card:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 
+      0 12px 48px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  /* Secondary glass panel - for larger sections */
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border-radius: 16px;
+    transition: all 0.3s ease;
+  }
+
+  /* Subtle glass card - for nested items */
+  .glass-subtle {
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+  }
+
+  .glass-subtle:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.12);
   }
   
   /* Card hover microinteraction: scale + glow */
@@ -341,11 +492,85 @@
     transform: scale(1.02);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 20px rgba(33, 200, 155, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
   }
+
+  /* Floating animation */
+  .floating-card {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  /* Radial glow on hover */
+  .radial-glow {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .radial-glow:hover::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(
+      circle,
+      rgba(16, 185, 129, 0.15) 0%,
+      rgba(16, 185, 129, 0.05) 40%,
+      transparent 70%
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Cursor tracking effect */
+  .cursor-glow {
+    position: fixed;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(
+      circle,
+      rgba(139, 92, 246, 0.1) 0%,
+      transparent 70%
+    );
+    pointer-events: none;
+    z-index: 9999;
+    mix-blend-mode: screen;
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
 }
 
 @keyframes pulse-fast {
   0%, 100% { opacity: 0.06; transform: scale(1); }
   50% { opacity: 0.09; transform: scale(1.02); }
+}
+
+/* Medical-appropriate subtle animations for icons */
+@keyframes gentle-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes icon-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}
+
+@keyframes rotate-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  10% { transform: scale(1.1); }
+  20% { transform: scale(1); }
+  30% { transform: scale(1.1); }
+  40% { transform: scale(1); }
 }
 
 .animate-wave-slow { animation: wave-slow 8s ease-in-out infinite; }
@@ -355,3 +580,9 @@
 .animate-pulse-slow { animation: pulse-slow 8s ease-in-out infinite; }
 .animate-pulse-medium { animation: pulse-medium 6s ease-in-out infinite; }
 .animate-pulse-fast { animation: pulse-fast 4s ease-in-out infinite; }
+
+/* Additional utility classes for medical UI */
+.animate-gentle-bounce { animation: gentle-bounce 2s ease-in-out infinite; }
+.animate-icon-pulse { animation: icon-pulse 3s ease-in-out infinite; }
+.animate-rotate-slow { animation: rotate-slow 8s linear infinite; }
+.animate-heartbeat { animation: heartbeat 2s ease-in-out infinite; }

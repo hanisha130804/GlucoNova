@@ -204,31 +204,16 @@ export class DrizzleStorage implements IStorage {
   // ==================== HEALTH DATA OPERATIONS ====================
   
   async createHealthData(userId: string, data: InsertHealthData): Promise<HealthData> {
-    // Skip-auth users (temporary IDs for onboarding) cannot save to database
-    if (userId.startsWith('skip-auth')) {
-      throw new Error('Cannot save health data without authentication. Please complete registration first.');
-    }
-    
     const userIdNum = parseInt(userId);
     if (isNaN(userIdNum)) throw new Error('Invalid user ID');
     
-    // Handle both legacy (number) and new (object) formats
-    const insulinData = typeof data.insulin === 'number' 
-      ? { taken: data.insulin > 0, dose: data.insulin } 
-      : data.insulin;
-    
-    const carbsData = typeof data.carbs === 'number'
-      ? { consumed: data.carbs > 0, grams: data.carbs }
-      : data.carbs;
-
     const result = await db.insert(healthData).values({
       userId: userIdNum,
       glucose: Math.round(data.glucose),
-      insulin: insulinData || null,
-      carbs: carbsData || null,
+      insulin: Math.round(data.insulin),
+      carbs: Math.round(data.carbs),
       activityLevel: data.activityLevel,
       notes: data.notes,
-      timestamp: data.timestamp ? new Date(data.timestamp) : new Date(),
     }).returning();
     
     const record = result[0];
@@ -245,11 +230,6 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getHealthDataByUser(userId: string, limit: number = 50): Promise<HealthData[]> {
-    // Skip-auth users have no saved data
-    if (userId.startsWith('skip-auth')) {
-      return [];
-    }
-    
     const userIdNum = parseInt(userId);
     if (isNaN(userIdNum)) return [];
     
@@ -272,11 +252,6 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getLatestHealthData(userId: string): Promise<HealthData | null> {
-    // Skip-auth users have no saved data
-    if (userId.startsWith('skip-auth')) {
-      return null;
-    }
-    
     const userIdNum = parseInt(userId);
     if (isNaN(userIdNum)) return null;
     
@@ -304,9 +279,6 @@ export class DrizzleStorage implements IStorage {
   // ==================== MEAL OPERATIONS ====================
   
   async createMeal(userId: string, meal: InsertMeal): Promise<Meal> {
-    if (userId.startsWith('skip-auth')) {
-      throw new Error('Cannot save meal data without authentication. Please complete registration first.');
-    }
     const userIdNum = parseInt(userId);
     if (isNaN(userIdNum)) throw new Error('Invalid user ID');
     
@@ -335,9 +307,6 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getMealsByUser(userId: string, limit: number = 50): Promise<Meal[]> {
-    if (userId.startsWith('skip-auth')) {
-      return [];
-    }
     const userIdNum = parseInt(userId);
     if (isNaN(userIdNum)) return [];
     
@@ -523,9 +492,6 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getLatestPrediction(userId: string): Promise<Prediction | null> {
-    if (userId.startsWith('skip-auth')) {
-      return null;
-    }
     const userIdNum = parseInt(userId);
     if (isNaN(userIdNum)) return null;
     

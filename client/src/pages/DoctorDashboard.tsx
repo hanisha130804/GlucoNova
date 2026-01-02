@@ -149,7 +149,7 @@ export default function DoctorDashboard() {
   return (
     <div className="flex h-screen w-full relative overflow-hidden animate-in fade-in duration-300" style={{ backgroundColor: '#0b111b' }}>
       <AppSidebar />
-      <div className="flex flex-col flex-1 overflow-hidden relative" style={{ zIndex: 10, marginLeft: '280px', backgroundColor: '#0f172a' }}>
+      <div className="flex flex-col flex-1 overflow-hidden relative" style={{ zIndex: 10, marginLeft: '320px', backgroundColor: '#0f172a' }}>
         <header className="flex items-center justify-between border-b border-border" style={{ height: '72px', padding: '0 24px' }}>
           <div className="flex items-center gap-4">
             <BarChart3 className="w-6 h-6 text-cyan-400" />

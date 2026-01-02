@@ -34,13 +34,18 @@
     "defaultName": "Hanisha SM"
   },
   "navigation": {
+    "dashboard": "Dashboard",
     "overview": "Overview",
     "glucoseInsulin": "Glucose & Insulin",
+    "glucoseLogInsulinHelper": "Glucose Log & Insulin Helper",
     "aiFoodLog": "AI Food Log",
+    "mealTracking": "Meal Tracking",
     "suggestionsActivity": "Suggestions & Activity",
     "foodActivity": "Food & Activity",
     "reportsDocuments": "Reports & Documents",
+    "medicalReports": "Medical Reports",
     "aiCoach": "AI Health Coach",
+    "askAIAssistant": "Ask AI Assistant",
     "careTeam": "Care Team",
     "settings": "Settings",
     "glucoseMonitoring": "Glucose Monitoring",
@@ -89,13 +94,19 @@
       "stableDay": "Stable Day",
       "mildMorningRisk": "Mild Morning Risk",
       "stableHours": "stable for the past 8 hours",
-      "goodWork": "good work",
-      "glucoseStable": "Your glucose has been",
+      "goodWork": "Keep it up!",
+      "needsAttention": "Needs attention",
+      "glucoseStable": "Your glucose is",
       "withAverage": "with an average of",
       "carbsBalanced": "Your carb intake is well-balanced. Keep up the",
       "breakfastSpike": "Breakfast carbs yesterday caused a spike. Try",
       "reduceRice": "reducing rice portion to ½ cup",
       "patternDetected": "Pattern Detected: Post-meal spikes after lunch (3 days). Consider 10-min walk after eating."
+    },
+    "actions": {
+      "logGlucose": "Log Glucose",
+      "logMeal": "Log Meal",
+      "viewReports": "View Reports"
     },
     "tabs": {
       "overview": "Overview",
@@ -186,6 +197,22 @@
         "needsImprovement": "Needs Improvement"
       }
     },
+    "quickActionsTools": {
+      "title": "Quick Actions & Tools",
+      "subtitle": "Quick access to common tasks"
+    },
+    "quickLinks": {
+      "title": "Quick Links",
+      "bloodSugar": "Blood Sugar Tracking",
+      "mealLogging": "Meal Logging",
+      "healthReports": "Health Reports",
+      "doctorCommunication": "Doctor Communication",
+      "quickAccess": "Quick Access",
+      "glucose": "Glucose",
+      "meals": "Meals",
+      "reports": "Reports",
+      "doctor": "Doctor"
+    },
     "quickActions": {
       "title": "Quick Actions",
       "bloodSugarTracking": "Blood Sugar Tracking",
@@ -225,6 +252,14 @@
       "activityGoalDetail": "{{percent}}%"
     },
     "profile": {
+      "title": "Health Profile",
+      "view": "View",
+      "loading": "Loading profile...",
+      "weight": "Weight",
+      "height": "Height",
+      "lastA1c": "Last A1C",
+      "typicalInsulin": "Typical Insulin",
+      "noData": "No profile data",
       "setupComplete": "Your profile has been configured successfully"
     },
     "aiInsights": {
@@ -359,6 +394,7 @@
       "noData": "No data",
       "generating": "Generating...",
       "generateButton": "Generate Prediction",
+      "calculateButton": "Calculate",
       "units": "units",
       "confidence": "conf."
     }
@@ -371,7 +407,11 @@
     "voiceInput": "Voice Input",
     "voiceLogging": "Voice Food Logging",
     "logMealButton": "Log Meal",
+    "logMeal": "Log Meal",
     "tapMicPrompt": "Tap mic to log your meal",
+    "startVoiceLog": "Start Voice Log",
+    "tapToSpeak": "Tap to Speak",
+    "logMealsInstantly": "Log meals instantly",
     "foodDescription": "Food Description",
     "foodPlaceholder": "e.g., 2 chapati with dal, biryani 200g, dosa idli sambar, chicken salad",
     "tipSpelling": "💡 Tip: Just type what you ate - spelling doesn't need to be perfect!",

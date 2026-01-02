@@ -1,6 +1,38 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import AppSidebar from '@/components/AppSidebar';
-import { Utensils, Mic, MicOff, Loader2, AlertCircle, CheckCircle, TrendingUp, Apple, Languages, Info, Leaf, Clock, Globe } from 'lucide-react';
+import { 
+  Brain,
+  Sparkles,
+  Search,
+  X,
+  Save,
+  BarChart3,
+  Sunrise,
+  Sun,
+  Moon,
+  Coffee,
+  Utensils,
+  UtensilsCrossed,
+  Flame,
+  Droplets,
+  Wheat,
+  Fish,
+  Cookie,
+  ArrowRight,
+  AlertTriangle,
+  CheckCircle,
+  Info,
+  Leaf,
+  Clock,
+  Globe,
+  Loader2,
+  Mic,
+  MicOff,
+  Target,
+  Zap,
+  Volume2,
+  Repeat
+} from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,7 +46,120 @@ import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useTranslation } from 'react-i18next';
 import { changeLanguage } from '@/i18n/config';
 
+// Add shake animation CSS
+const shakeAnimation = `
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+  }
+  .shake {
+    animation: shake 0.5s ease-in-out;
+  }
+`;
+
+// Inject CSS
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.innerHTML = shakeAnimation;
+  if (!document.head.querySelector('style[data-shake-animation]')) {
+    style.setAttribute('data-shake-animation', 'true');
+    document.head.appendChild(style);
+  }
+}
+
 type Language = 'EN' | 'HI' | 'KN' | 'TE' | 'TA' | 'MR' | 'BN' | 'GU' | 'ML' | 'PA' | 'OR' | 'AS';
+type MealTime = 'Breakfast' | 'Lunch' | 'Dinner' | 'Snack';
+type SugarLevel = 'low' | 'medium' | 'high' | 'very high';
+
+// Indian Food Database (50+ dishes)
+const indianFoodDatabase: Record<string, {
+  carbs: number;
+  protein: number;
+  fiber: number;
+  calories: number;
+  sugar: SugarLevel;
+  gi: number;
+  region: string;
+}> = {
+  // HIGH SUGAR IMPACT
+  'biryani': { carbs: 85, protein: 18, fiber: 3, calories: 520, sugar: 'high', gi: 75, region: 'north' },
+  'pulao': { carbs: 70, protein: 12, fiber: 2, calories: 380, sugar: 'high', gi: 72, region: 'north' },
+  'naan': { carbs: 58, protein: 9, fiber: 2, calories: 310, sugar: 'high', gi: 70, region: 'north' },
+  'jalebi': { carbs: 95, protein: 3, fiber: 1, calories: 450, sugar: 'very high', gi: 85, region: 'north' },
+  'gulab jamun': { carbs: 90, protein: 6, fiber: 1, calories: 420, sugar: 'very high', gi: 82, region: 'all' },
+  'rasgulla': { carbs: 88, protein: 8, fiber: 0, calories: 380, sugar: 'very high', gi: 80, region: 'east' },
+  'sweet lassi': { carbs: 65, protein: 8, fiber: 0, calories: 320, sugar: 'high', gi: 68, region: 'north' },
+  'puri': { carbs: 62, protein: 8, fiber: 2, calories: 350, sugar: 'high', gi: 76, region: 'north' },
+  'bhatura': { carbs: 68, protein: 9, fiber: 2, calories: 420, sugar: 'high', gi: 78, region: 'north' },
+  'white rice': { carbs: 80, protein: 7, fiber: 1, calories: 350, sugar: 'high', gi: 73, region: 'all' },
+  'fried rice': { carbs: 75, protein: 10, fiber: 2, calories: 380, sugar: 'high', gi: 72, region: 'all' },
+  'pakora': { carbs: 55, protein: 8, fiber: 3, calories: 320, sugar: 'high', gi: 71, region: 'north' },
+  'samosa': { carbs: 60, protein: 7, fiber: 3, calories: 330, sugar: 'high', gi: 70, region: 'north' },
+  'aloo paratha': { carbs: 58, protein: 8, fiber: 3, calories: 310, sugar: 'high', gi: 72, region: 'north' },
+  'pav bhaji': { carbs: 70, protein: 10, fiber: 4, calories: 380, sugar: 'high', gi: 68, region: 'west' },
+  
+  // MODERATE SUGAR
+  'chapati': { carbs: 45, protein: 8, fiber: 4, calories: 120, sugar: 'medium', gi: 55, region: 'north' },
+  'roti': { carbs: 45, protein: 8, fiber: 4, calories: 120, sugar: 'medium', gi: 55, region: 'north' },
+  'paratha': { carbs: 50, protein: 7, fiber: 3, calories: 280, sugar: 'medium', gi: 60, region: 'north' },
+  'dosa': { carbs: 55, protein: 8, fiber: 2, calories: 250, sugar: 'medium', gi: 58, region: 'south' },
+  'idli': { carbs: 40, protein: 10, fiber: 3, calories: 180, sugar: 'medium', gi: 53, region: 'south' },
+  'upma': { carbs: 48, protein: 9, fiber: 4, calories: 220, sugar: 'medium', gi: 56, region: 'south' },
+  'poha': { carbs: 52, protein: 7, fiber: 3, calories: 240, sugar: 'medium', gi: 59, region: 'west' },
+  'vada': { carbs: 50, protein: 12, fiber: 5, calories: 280, sugar: 'medium', gi: 54, region: 'south' },
+  'uttapam': { carbs: 52, protein: 9, fiber: 3, calories: 270, sugar: 'medium', gi: 57, region: 'south' },
+  'thepla': { carbs: 48, protein: 8, fiber: 4, calories: 210, sugar: 'medium', gi: 55, region: 'west' },
+  'dhokla': { carbs: 44, protein: 10, fiber: 3, calories: 200, sugar: 'medium', gi: 52, region: 'west' },
+  'khichdi': { carbs: 50, protein: 12, fiber: 5, calories: 260, sugar: 'medium', gi: 54, region: 'all' },
+  'pulka': { carbs: 44, protein: 8, fiber: 4, calories: 120, sugar: 'medium', gi: 54, region: 'south' },
+  
+  // LOW SUGAR
+  'curd rice': { carbs: 85, protein: 14, fiber: 2, calories: 450, sugar: 'medium', gi: 65, region: 'south' },
+  'dal': { carbs: 20, protein: 12, fiber: 8, calories: 150, sugar: 'low', gi: 25, region: 'all' },
+  'moong dal': { carbs: 18, protein: 14, fiber: 9, calories: 140, sugar: 'low', gi: 22, region: 'all' },
+  'toor dal': { carbs: 22, protein: 12, fiber: 8, calories: 160, sugar: 'low', gi: 28, region: 'all' },
+  'masoor dal': { carbs: 20, protein: 13, fiber: 8, calories: 155, sugar: 'low', gi: 26, region: 'all' },
+  'sambar': { carbs: 25, protein: 10, fiber: 6, calories: 180, sugar: 'low', gi: 30, region: 'south' },
+  'rasam': { carbs: 15, protein: 5, fiber: 3, calories: 80, sugar: 'low', gi: 20, region: 'south' },
+  'palak paneer': { carbs: 12, protein: 25, fiber: 4, calories: 320, sugar: 'low', gi: 18, region: 'north' },
+  'paneer tikka': { carbs: 8, protein: 28, fiber: 2, calories: 280, sugar: 'low', gi: 15, region: 'north' },
+  'chicken curry': { carbs: 10, protein: 35, fiber: 3, calories: 320, sugar: 'low', gi: 15, region: 'all' },
+  'chicken tikka': { carbs: 6, protein: 38, fiber: 2, calories: 280, sugar: 'low', gi: 12, region: 'north' },
+  'fish curry': { carbs: 8, protein: 30, fiber: 2, calories: 280, sugar: 'low', gi: 12, region: 'coastal' },
+  'egg curry': { carbs: 8, protein: 18, fiber: 3, calories: 220, sugar: 'low', gi: 18, region: 'all' },
+  'omelette': { carbs: 3, protein: 15, fiber: 1, calories: 180, sugar: 'low', gi: 10, region: 'all' },
+  'boiled egg': { carbs: 1, protein: 13, fiber: 0, calories: 155, sugar: 'low', gi: 8, region: 'all' },
+  'vegetable curry': { carbs: 15, protein: 6, fiber: 5, calories: 140, sugar: 'low', gi: 28, region: 'all' },
+  'mixed veg': { carbs: 18, protein: 7, fiber: 6, calories: 160, sugar: 'low', gi: 30, region: 'all' },
+  'bhindi masala': { carbs: 12, protein: 4, fiber: 5, calories: 110, sugar: 'low', gi: 25, region: 'all' },
+  'aloo gobi': { carbs: 22, protein: 5, fiber: 4, calories: 150, sugar: 'low', gi: 35, region: 'north' },
+  'cabbage sabzi': { carbs: 10, protein: 3, fiber: 4, calories: 90, sugar: 'low', gi: 20, region: 'all' },
+  'sprouted moong': { carbs: 16, protein: 14, fiber: 8, calories: 130, sugar: 'low', gi: 22, region: 'all' },
+  'curd': { carbs: 7, protein: 6, fiber: 0, calories: 98, sugar: 'low', gi: 28, region: 'all' },
+  'buttermilk': { carbs: 6, protein: 4, fiber: 0, calories: 60, sugar: 'low', gi: 24, region: 'all' },
+  'green chutney': { carbs: 5, protein: 2, fiber: 2, calories: 40, sugar: 'low', gi: 15, region: 'all' },
+  'raita': { carbs: 8, protein: 5, fiber: 1, calories: 85, sugar: 'low', gi: 26, region: 'all' },
+};
+
+// Replacement suggestions
+const replacementDatabase: Record<string, Array<{ name: string; carbs: number; protein: number; gi: number; benefit: string }>> = {
+  'biryani': [
+    { name: 'Quinoa Biryani', carbs: 45, protein: 18, gi: 53, benefit: 'High protein, low GI' },
+    { name: 'Cauliflower Rice Biryani', carbs: 15, protein: 14, gi: 20, benefit: '90% less carbs' },
+    { name: 'Brown Rice Biryani', carbs: 65, protein: 16, gi: 55, benefit: 'Higher fiber' },
+  ],
+  'rice': [
+    { name: 'Brown Rice', carbs: 55, protein: 6, gi: 55, benefit: 'More fiber' },
+    { name: 'Quinoa', carbs: 39, protein: 14, gi: 53, benefit: 'Complete protein' },
+    { name: 'Barley', carbs: 44, protein: 8, gi: 28, benefit: 'Lowest GI' },
+  ],
+  'naan': [
+    { name: 'Whole Wheat Chapati', carbs: 45, protein: 8, gi: 55, benefit: 'Higher fiber' },
+    { name: 'Bajra Roti', carbs: 42, protein: 10, gi: 48, benefit: 'Rich in minerals' },
+    { name: 'Multigrain Bread', carbs: 40, protein: 9, gi: 49, benefit: 'Balanced nutrients' },
+  ],
+};
 
 interface DishItem {
   dishName: string;
@@ -70,12 +215,18 @@ export default function AIFoodLogPage() {
   // Form fields
   const [portionSize, setPortionSize] = useState('1');
   const [portionUnit, setPortionUnit] = useState('plate');
-  const [mealType, setMealType] = useState('Lunch');
+  const [mealType, setMealType] = useState<MealTime>('Lunch');
   const [cookingStyle, setCookingStyle] = useState('');
+  
+  // New state for sugar alerts and replacements
+  const [sugarAlert, setSugarAlert] = useState<{ level: 'low' | 'medium' | 'high'; message: string; gi: number; region: string } | null>(null);
+  const [showReplacements, setShowReplacements] = useState(false);
+  const [selectedReplacement, setSelectedReplacement] = useState<string | null>(null);
+  const [voiceStatus, setVoiceStatus] = useState('Click microphone to describe your meal');
   
   const recognitionRef = useRef<any>(null);
 
-  // Sync language state with i18n when i18n language changes
+  // Sync language state with i18n
   useEffect(() => {
     const langMap: Record<string, Language> = {
       'en': 'EN',
@@ -87,7 +238,7 @@ export default function AIFoodLogPage() {
     setLanguage(mappedLang);
   }, [i18n.language]);
 
-  // Auto-update meal type based on meal timing selection
+  // Auto-update meal type based on timing
   useEffect(() => {
     if (mealTiming === 'AM') {
       setMealType('Breakfast');
@@ -98,360 +249,52 @@ export default function AIFoodLogPage() {
     }
   }, [mealTiming]);
 
-  // Meal timing translations for multiple languages
-  const mealTimingLabels: Record<string, { AM: string; PM: string; EV: string }> = {
-    'EN': { AM: 'AM', PM: 'PM', EV: 'EV' },
-    'HI': { AM: 'सुबह', PM: 'दोपहर', EV: 'शाम' },
-    'KN': { AM: 'ಬೆಳಗ್ಗೆ', PM: 'ಮಧ್ಯಾಹ್ನ', EV: 'ಸಂಜೆ' },
-    'TE': { AM: 'ఉదయం', PM: 'మధ్యాహ్నం', EV: 'రాత్రి' },
-    'TA': { AM: 'காலை', PM: 'மதியம்', EV: 'மாலை' },
-    'MR': { AM: 'सकाळ', PM: 'दुपार', EV: 'संध्याकाळ' },
-    'BN': { AM: 'সকাল', PM: 'দুপুর', EV: 'সন্ধ্যা' },
-    'GU': { AM: 'સવાર', PM: 'બપોર', EV: 'સાંજ' },
-    'ML': { AM: 'രാവിലെ', PM: 'ഉച്ചക്ക്', EV: 'വൈകുന്നേരം' },
-    'PA': { AM: 'ਸਵੇਰ', PM: 'ਦੁਪਹਿਰ', EV: 'ਸ਼ਾਮ' },
-    'OR': { AM: 'ସକାଳ', PM: 'ଅପରାହ୍ନ', EV: 'ସନ୍ଧ୍ୟା' },
-    'AS': { AM: 'পুৱা', PM: 'দুপৰ', EV: 'গধূলি' },
-  };
-
-  // Get labels for current language, fallback to EN
-  // useMemo ensures proper recalculation when language changes
-  const currentTimingLabels = useMemo(
-    () => mealTimingLabels[language] || mealTimingLabels['EN'],
-    [language]
-  );
-
-  // Regional language mappings for Indian dishes
-  // Maps local language names to their English/standard equivalents
-  const regionalFoodMappings: Record<string, string> = {
-    // Telugu dishes
-    'annam pappu': 'dal rice', // Must be before 'annam' and 'pappu'
-    'perugu annam': 'curd rice',
-    'sambar annam': 'sambar rice',
-    'annam': 'rice',
-    'pappu': 'dal',
-    'perugu': 'curd',
-    'chapatilu': 'chapati',
-    'pulihora': 'tamarind rice',
-    'boorelu': 'dal vada',
-    'pesarattu': 'moong dal dosa',
-    'dibba roti': 'paratha',
-    'punugulu': 'idli vada',
-    'majjiga': 'buttermilk', // Telugu buttermilk
-    
-    // Kannada dishes
-    'mosaru anna': 'curd rice',
-    'huli anna': 'sambar rice',
-    'bisi bele bath': 'sambar rice',
-    'anna': 'rice',
-    'tovve': 'dal',
-    'mosaru': 'curd',
-    'chapathi': 'chapati',
-    'jolada roti': 'jowar roti',
-    'ragi mudde': 'ragi ball',
-    'dose': 'dosa',
-    'vade': 'vada',
-    'uppittu': 'upma',
-    'chitranna': 'lemon rice',
-    'mandakki': 'puffed rice',
-    'neer dosa': 'rice crepe',
-    'majjige': 'buttermilk', // Kannada buttermilk
-    
-    // Tamil dishes
-    'thayir sadam': 'curd rice',
-    'sambar sadam': 'sambar rice',
-    'sadam': 'rice',
-    'paruppu': 'dal',
-    'thayir': 'curd',
-    'parotta': 'paratha',
-    'dosai': 'dosa',
-    'vadai': 'vada',
-    'mor': 'buttermilk', // Tamil buttermilk
-    'kootu': 'vegetable curry',
-    
-    // Hindi/North Indian dishes
-    'dahi chawal': 'curd rice',
-    'dal chawal': 'dal rice',
-    'bhaat': 'rice',
-    'daal': 'dal',
-    'dahi': 'curd',
-    'poori': 'puri',
-    'sabzi': 'vegetable curry', // North Indian vegetable curry
-    'chaas': 'buttermilk', // Hindi buttermilk
-    'khichdi': 'dal rice',
-    
-    // Marathi dishes  
-    'bhat': 'rice',
-    'loncha': 'pickle',
-    'poli': 'roti',
-    'bhakri': 'jowar roti',
-    'thalipeeth': 'multi-grain flatbread',
-    'misal': 'sprouted lentils',
-    
-    // Combined dishes common across regions
-    'rice and dal': 'dal rice',
-    'dal and rice': 'dal rice',
-    'rice dal': 'dal rice',
-    'yogurt rice': 'curd rice',
-  };
-
-  // Normalize description by replacing regional names with standard names
-  const normalizeDescription = (desc: string): string => {
-    let normalized = desc.toLowerCase();
-    
-    // Sort by length (descending) to match longer phrases first
-    const sortedMappings = Object.entries(regionalFoodMappings)
-      .sort((a, b) => b[0].length - a[0].length);
-    
-    // Replace regional names with standard equivalents
-    for (const [regional, standard] of sortedMappings) {
-      const regex = new RegExp(`\\b${regional}\\b`, 'gi');
-      normalized = normalized.replace(regex, standard);
-    }
-    
-    return normalized;
-  };
-
-  // Client-side meal analysis fallback (when backend is unavailable)
-  const analyzeLocalMeal = (description: string, portionMult: number): MealAnalysis => {
-    // Normalize regional language names to standard English names
-    const normalizedDesc = normalizeDescription(description);
-    const lowerDesc = normalizedDesc.toLowerCase();
-    
-    const indianFoods: Record<string, any> = {
-      // Combined dishes
-      'dal rice': { carbs: 63, protein: 13, fat: 4.5, fiber: 5.6, calories: 340, gi: 52, impact: 'medium', ingredients: ['white rice', 'lentils', 'oil', 'spices'] },
-      'sambar rice': { carbs: 60, protein: 9, fat: 3.5, fiber: 4.6, calories: 300, gi: 55, impact: 'medium', ingredients: ['white rice', 'toor dal', 'vegetables', 'tamarind', 'spices'] },
-      'lemon rice': { carbs: 48, protein: 4.5, fat: 6, fiber: 1, calories: 265, gi: 70, impact: 'medium', ingredients: ['white rice', 'lemon juice', 'peanuts', 'oil', 'spices'] },
-      'tamarind rice': { carbs: 50, protein: 4.5, fat: 6, fiber: 1.5, calories: 275, gi: 68, impact: 'medium', ingredients: ['white rice', 'tamarind', 'peanuts', 'oil', 'spices'] },
-      'coconut rice': { carbs: 48, protein: 5, fat: 8, fiber: 2, calories: 290, gi: 65, impact: 'medium', ingredients: ['white rice', 'coconut', 'oil', 'spices'] },
-      'tomato rice': { carbs: 47, protein: 5, fat: 5, fiber: 2, calories: 260, gi: 68, impact: 'medium', ingredients: ['white rice', 'tomato', 'oil', 'spices'] },
-      
-      // Indian Staples - Bread
-      'chapati': { carbs: 15, protein: 3, fat: 2, fiber: 2, calories: 90, gi: 62, impact: 'medium', ingredients: ['whole wheat flour', 'oil/ghee', 'salt'] },
-      'roti': { carbs: 15, protein: 3, fat: 2, fiber: 2, calories: 90, gi: 62, impact: 'medium', ingredients: ['whole wheat flour', 'oil/ghee', 'salt'] },
-      'naan': { carbs: 25, protein: 4, fat: 3, fiber: 1, calories: 140, gi: 70, impact: 'medium', ingredients: ['refined flour', 'yogurt', 'yeast', 'ghee'] },
-      'paratha': { carbs: 25, protein: 4, fat: 8, fiber: 2, calories: 200, gi: 65, impact: 'medium', ingredients: ['wheat flour', 'oil/ghee', 'salt'] },
-      'puri': { carbs: 18, protein: 3, fat: 6, fiber: 1, calories: 140, gi: 70, impact: 'medium', ingredients: ['wheat flour', 'oil (fried)', 'salt'] },
-      
-      // Indian Staples - Rice
-      'rice': { carbs: 45, protein: 4, fat: 0.5, fiber: 0.6, calories: 200, gi: 73, impact: 'high', ingredients: ['white rice', 'water'] },
-      'brown rice': { carbs: 45, protein: 5, fat: 1.5, fiber: 3.5, calories: 215, gi: 50, impact: 'medium', ingredients: ['brown rice', 'water'] },
-      'biryani': { carbs: 55, protein: 15, fat: 12, fiber: 2, calories: 390, gi: 58, impact: 'high', ingredients: ['rice', 'chicken/mutton', 'oil/ghee', 'spices'] },
-      'pulao': { carbs: 48, protein: 6, fat: 8, fiber: 2, calories: 290, gi: 60, impact: 'medium', ingredients: ['rice', 'vegetables', 'ghee', 'spices'] },
-      'curd rice': { carbs: 35, protein: 6, fat: 3, fiber: 0.5, calories: 200, gi: 68, impact: 'medium', ingredients: ['rice', 'curd/yogurt', 'salt'] },
-      
-      // South Indian
-      'idli': { carbs: 8, protein: 2, fat: 0.5, fiber: 1, calories: 40, gi: 45, impact: 'medium', ingredients: ['rice', 'urad dal', 'salt'] },
-      'dosa': { carbs: 22, protein: 4, fat: 5, fiber: 1.5, calories: 150, gi: 66, impact: 'medium', ingredients: ['rice', 'urad dal', 'oil'] },
-      'masala dosa': { carbs: 30, protein: 6, fat: 8, fiber: 2, calories: 220, gi: 66, impact: 'medium', ingredients: ['rice', 'urad dal', 'potato', 'oil', 'spices'] },
-      'vada': { carbs: 12, protein: 4, fat: 8, fiber: 2, calories: 140, gi: 55, impact: 'medium', ingredients: ['urad dal', 'spices', 'oil (fried)'] },
-      'sambar': { carbs: 15, protein: 5, fat: 3, fiber: 4, calories: 100, gi: 35, impact: 'low', ingredients: ['toor dal', 'vegetables', 'tamarind', 'spices'] },
-      'rasam': { carbs: 8, protein: 2, fat: 2, fiber: 1.5, calories: 55, gi: 30, impact: 'low', ingredients: ['tomato', 'tamarind', 'spices', 'dal water'] },
-      'upma': { carbs: 32, protein: 4, fat: 5, fiber: 2.5, calories: 190, gi: 60, impact: 'medium', ingredients: ['semolina', 'vegetables', 'oil', 'spices'] },
-      'pongal': { carbs: 38, protein: 6, fat: 7, fiber: 2, calories: 240, gi: 58, impact: 'medium', ingredients: ['rice', 'moong dal', 'ghee', 'pepper', 'cumin'] },
-      
-      // North Indian - Dal/Lentils
-      'dal': { carbs: 18, protein: 9, fat: 4, fiber: 5, calories: 140, gi: 30, impact: 'low', ingredients: ['lentils', 'oil', 'spices', 'onion', 'tomato'] },
-      'dal makhani': { carbs: 20, protein: 10, fat: 8, fiber: 6, calories: 190, gi: 35, impact: 'low', ingredients: ['black dal', 'kidney beans', 'butter', 'cream', 'spices'] },
-      'rajma': { carbs: 22, protein: 8, fat: 4, fiber: 7, calories: 155, gi: 28, impact: 'low', ingredients: ['kidney beans', 'onion', 'tomato', 'oil', 'spices'] },
-      'chole': { carbs: 25, protein: 9, fat: 5, fiber: 8, calories: 180, gi: 28, impact: 'low', ingredients: ['chickpeas', 'onion', 'tomato', 'oil', 'spices'] },
-      
-      // Breakfast Items
-      'poha': { carbs: 30, protein: 3, fat: 4, fiber: 2, calories: 170, gi: 55, impact: 'medium', ingredients: ['flattened rice', 'peanuts', 'oil', 'spices'] },
-      
-      // Curries
-      'chicken curry': { carbs: 8, protein: 25, fat: 10, fiber: 2, calories: 220, gi: 0, impact: 'low', ingredients: ['chicken', 'oil', 'onion', 'tomato', 'spices'] },
-      'butter chicken': { carbs: 12, protein: 22, fat: 18, fiber: 2, calories: 290, gi: 5, impact: 'low', ingredients: ['chicken', 'butter', 'cream', 'tomato', 'spices'] },
-      'paneer': { carbs: 3, protein: 18, fat: 20, fiber: 0, calories: 260, gi: 0, impact: 'low', ingredients: ['cottage cheese', 'spices'] },
-      'palak paneer': { carbs: 8, protein: 12, fat: 15, fiber: 3, calories: 210, gi: 15, impact: 'low', ingredients: ['paneer', 'spinach', 'cream', 'spices'] },
-      
-      // Dairy & Beverages
-      'milk': { carbs: 12, protein: 8, fat: 8, fiber: 0, calories: 150, gi: 30, impact: 'medium', ingredients: ['whole milk'] },
-      'buttermilk': { carbs: 5, protein: 3, fat: 0.5, fiber: 0, calories: 40, gi: 25, impact: 'low', ingredients: ['curd/yogurt', 'water', 'salt', 'spices'] },
-      'lassi': { carbs: 20, protein: 5, fat: 3, fiber: 0, calories: 130, gi: 35, impact: 'medium', ingredients: ['yogurt', 'water', 'sugar/salt'] },
-      'curd': { carbs: 5, protein: 4, fat: 3, fiber: 0, calories: 60, gi: 30, impact: 'low', ingredients: ['yogurt'] },
-      'yogurt': { carbs: 5, protein: 4, fat: 3, fiber: 0, calories: 60, gi: 30, impact: 'low', ingredients: ['yogurt'] },
-      
-      // Snacks & Street Food
-      'samosa': { carbs: 25, protein: 4, fat: 12, fiber: 2, calories: 230, gi: 70, impact: 'high', ingredients: ['refined flour', 'potato', 'peas', 'oil (fried)'] },
-      'pakora': { carbs: 15, protein: 3, fat: 8, fiber: 2, calories: 150, gi: 65, impact: 'medium', ingredients: ['gram flour', 'vegetables', 'oil (fried)'] },
-      'bhel puri': { carbs: 30, protein: 4, fat: 6, fiber: 3, calories: 190, gi: 60, impact: 'medium', ingredients: ['puffed rice', 'vegetables', 'chutney', 'sev'] },
-      
-      // Western Foods
-      'bread': { carbs: 15, protein: 3, fat: 1, fiber: 1, calories: 80, gi: 75, impact: 'high', ingredients: ['refined flour', 'yeast', 'sugar'] },
-      'brown bread': { carbs: 14, protein: 3, fat: 1, fiber: 2, calories: 80, gi: 55, impact: 'medium', ingredients: ['whole wheat flour', 'yeast'] },
-      'oatmeal': { carbs: 27, protein: 5, fat: 3, fiber: 4, calories: 150, gi: 55, impact: 'medium', ingredients: ['oats', 'water/milk'] },
-      'oats': { carbs: 27, protein: 5, fat: 3, fiber: 4, calories: 150, gi: 55, impact: 'medium', ingredients: ['oats', 'water/milk'] },
-      'pasta': { carbs: 40, protein: 7, fat: 2, fiber: 2, calories: 200, gi: 60, impact: 'medium', ingredients: ['wheat pasta', 'sauce'] },
-      'pizza': { carbs: 35, protein: 12, fat: 15, fiber: 2, calories: 320, gi: 65, impact: 'high', ingredients: ['refined flour', 'cheese', 'toppings', 'sauce'] },
-      'burger': { carbs: 32, protein: 15, fat: 18, fiber: 2, calories: 350, gi: 68, impact: 'high', ingredients: ['bun', 'patty', 'cheese', 'vegetables', 'sauce'] },
-      'sandwich': { carbs: 28, protein: 8, fat: 6, fiber: 3, calories: 200, gi: 60, impact: 'medium', ingredients: ['bread', 'vegetables', 'cheese/meat'] },
-      'egg': { carbs: 1, protein: 6, fat: 5, fiber: 0, calories: 70, gi: 0, impact: 'low', ingredients: ['egg'] },
-      'omelette': { carbs: 2, protein: 12, fat: 12, fiber: 0, calories: 170, gi: 0, impact: 'low', ingredients: ['eggs', 'oil', 'vegetables'] },
-      
-      // Fruits & Vegetables
-      'apple': { carbs: 14, protein: 0.3, fat: 0.2, fiber: 2.4, calories: 52, gi: 36, impact: 'low', ingredients: ['apple'] },
-      'banana': { carbs: 23, protein: 1, fat: 0.3, fiber: 2.6, calories: 89, gi: 51, impact: 'medium', ingredients: ['banana'] },
-      'orange': { carbs: 12, protein: 1, fat: 0.1, fiber: 2.4, calories: 47, gi: 43, impact: 'low', ingredients: ['orange'] },
-      'mango': { carbs: 15, protein: 0.8, fat: 0.4, fiber: 1.6, calories: 60, gi: 51, impact: 'medium', ingredients: ['mango'] },
-      'salad': { carbs: 5, protein: 2, fat: 0.2, fiber: 2, calories: 25, gi: 15, impact: 'low', ingredients: ['mixed vegetables', 'greens'] },
-      'vegetables': { carbs: 5, protein: 2, fat: 0.2, fiber: 2, calories: 25, gi: 15, impact: 'low', ingredients: ['mixed vegetables', 'greens'] },
-      'vegetable': { carbs: 5, protein: 2, fat: 0.2, fiber: 2, calories: 25, gi: 15, impact: 'low', ingredients: ['mixed vegetables', 'greens'] },
-    };
-
-    const items: DishItem[] = [];
-    Object.keys(indianFoods).forEach(food => {
-      const regex = new RegExp(`(\\d+)?\\s*${food}`, 'gi');
-      const matches = lowerDesc.match(regex);
-      if (matches) {
-        const quantityMatch = matches[0].match(/\d+/);
-        const quantity = (quantityMatch ? parseInt(quantityMatch[0]) : 1) * portionMult;
-        const foodData = indianFoods[food];
-        items.push({
-          dishName: food.charAt(0).toUpperCase() + food.slice(1),
-          normalizedName: food,
-          quantity,
-          unit: 'serving',
-          estimatedWeightGrams: quantity * 100,
-          mainIngredients: foodData.ingredients,
-          nutrition: {
-            carbs: Math.round(foodData.carbs * quantity),
-            protein: Math.round(foodData.protein * quantity),
-            fat: Math.round(foodData.fat * quantity),
-            fiber: Math.round(foodData.fiber * quantity),
-            calories: Math.round(foodData.calories * quantity),
-            glycemicIndex: foodData.gi || null,
-          },
-          impactLevel: foodData.impact as 'low' | 'medium' | 'high',
-        });
-      }
-    });
-
-    if (items.length === 0) {
-      return {
-        error: 'unknown_dish',
-        message: 'Could not recognize dishes in description. Try including foods like: chapati, dal, rice, sambar, idli, dosa, upma, chicken curry, paneer, buttermilk, oats, eggs, salad, etc.',
-        mealName: mealType,
-        items: [],
-        totals: { carbs: 0, protein: 0, fat: 0, calories: 0, fiber: 0, overallImpactLevel: 'medium' },
-      };
-    }
-
-    const totals = {
-      carbs: items.reduce((sum, item) => sum + item.nutrition.carbs, 0),
-      protein: items.reduce((sum, item) => sum + item.nutrition.protein, 0),
-      fat: items.reduce((sum, item) => sum + item.nutrition.fat, 0),
-      calories: items.reduce((sum, item) => sum + item.nutrition.calories, 0),
-      fiber: items.reduce((sum, item) => sum + item.nutrition.fiber, 0),
-      overallImpactLevel: (items.some(i => i.impactLevel === 'high') ? 'high' : 
-                          items.some(i => i.impactLevel === 'medium') ? 'medium' : 'low') as 'low' | 'medium' | 'high',
-    };
-
-    const benefits: string[] = [];
-    const cautions: string[] = [];
-    const alternatives: string[] = [];
-
-    if (lowerDesc.includes('dal')) benefits.push('Dal provides plant-based protein and fiber for stable blood sugar.');
-    if (lowerDesc.includes('vegetable') || lowerDesc.includes('salad')) benefits.push('Vegetables are rich in fiber and nutrients, excellent for diabetes.');
-    if (totals.fiber >= 5) benefits.push(`High fiber content (${totals.fiber}g) helps slow carb absorption.`);
-    if (totals.protein >= 20) benefits.push('Good protein content helps maintain stable energy levels.');
-
-    if (totals.carbs > 60) {
-      cautions.push('High carb intake detected. May raise blood sugar significantly.');
-      alternatives.push('Consider reducing portion size by 25-30% or replace half the rice with vegetables.');
-    }
-    if (lowerDesc.includes('fried')) {
-      cautions.push('Fried foods contain excess oil that may affect insulin sensitivity.');
-      alternatives.push('Try baking, grilling, or air-frying instead.');
-    }
-
-    return {
-      mealName: mealType,
-      items,
-      totals,
-      healthImpact: {
-        category: totals.carbs > 60 ? 'high' : totals.carbs > 40 ? 'medium' : 'low',
-        description: totals.carbs > 60 
-          ? 'High carbohydrate load - may cause significant blood sugar rise. Monitor levels 2 hours after eating.'
-          : totals.carbs > 40
-          ? 'Moderate carbohydrate content - may cause moderate blood sugar rise. Consider a 15-minute walk after eating.'
-          : 'Low to moderate carbs - minimal blood sugar impact. Good choice for diabetes management.',
-      },
-      benefits: benefits.length > 0 ? benefits : ['This meal provides essential nutrients. Pair with mindful eating and glucose monitoring.'],
-      cautions: cautions.length > 0 ? cautions : undefined,
-      alternatives: alternatives.length > 0 ? alternatives : undefined,
-    };
-  };
-
   const { data: recentMeals, isLoading: mealsLoading } = useQuery({
     queryKey: ['/api/ai-food-log/recent'],
   });
 
-  // Local storage fallback for meals when not authenticated
-  const [localMeals, setLocalMeals] = useState<any[]>([]);
-
-  // Load local meals from localStorage on mount
-  useEffect(() => {
-    const stored = localStorage.getItem('localMealLogs');
-    if (stored) {
-      try {
-        setLocalMeals(JSON.parse(stored));
-      } catch (e) {
-        console.error('Failed to parse local meals:', e);
-        setLocalMeals([]);
-      }
-    }
-  }, []);
-
-  // Determine which meals to display (backend or local)
-  const displayMeals = Array.isArray(recentMeals) && recentMeals.length > 0 
-    ? recentMeals 
-    : localMeals;
-
-  // Initialize Speech Recognition with language support
+  // Voice Recognition Setup
   useEffect(() => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
       recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true;
-      
-      // Update language based on selection
-      recognitionRef.current.lang = language === 'HI' ? 'hi-IN' : 'en-IN';
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = false;
+      recognitionRef.current.lang = 'en-IN'; // Indian English
+
+      recognitionRef.current.onstart = () => {
+        setIsRecording(true);
+        setVoiceStatus('🎤 Listening... Speak now!');
+      };
 
       recognitionRef.current.onresult = (event: any) => {
-        let finalTranscript = '';
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript + ' ';
-          }
+        const transcript = event.results[0][0].transcript;
+        setMealDescription(transcript);
+        setVoiceStatus(`✅ Heard: "${transcript}"`);
+        
+        // Auto-detect portion size
+        const portionMatch = transcript.toLowerCase().match(/(\d+)\s*(bowl|plate|cup|piece|chapati|idli|dosa)/);
+        if (portionMatch) {
+          setPortionSize(portionMatch[1]);
+          setPortionUnit(portionMatch[2]);
         }
 
-        if (finalTranscript) {
-          setMealDescription(prev => prev + finalTranscript);
-        }
+        setTimeout(() => setVoiceStatus('Click microphone to describe your meal'), 3000);
       };
 
       recognitionRef.current.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
+        setVoiceStatus(`❌ Error: ${event.error}`);
         setIsRecording(false);
-        toast({
-          title: 'Voice Input Error',
-          description: 'Could not capture voice. Please try again.',
-          variant: 'destructive',
-        });
       };
 
       recognitionRef.current.onend = () => {
         setIsRecording(false);
       };
     }
-  }, [language, toast]);
+  }, []);
 
-  const toggleRecording = () => {
+  // Toggle voice recording
+  const toggleVoiceRecording = () => {
     if (!recognitionRef.current) {
       toast({
         title: 'Voice Not Supported',
@@ -463,12 +306,76 @@ export default function AIFoodLogPage() {
 
     if (isRecording) {
       recognitionRef.current.stop();
-      setIsRecording(false);
     } else {
       recognitionRef.current.start();
-      setIsRecording(true);
     }
   };
+
+  // Check sugar impact function
+  const checkSugarImpact = (mealName: string) => {
+    const mealLower = mealName.toLowerCase();
+    let foundMeal = null;
+
+    for (const [key, data] of Object.entries(indianFoodDatabase)) {
+      if (mealLower.includes(key)) {
+        foundMeal = { name: key, ...data };
+        break;
+      }
+    }
+
+    if (!foundMeal) {
+      setSugarAlert(null);
+      setShowReplacements(false);
+      return;
+    }
+
+    let alertLevel: 'low' | 'medium' | 'high' = 'low';
+    let alertMessage = '';
+
+    if (foundMeal.sugar === 'very high' || foundMeal.gi > 70) {
+      alertLevel = 'high';
+      alertMessage = `⚠️ HIGH SUGAR ALERT: ${foundMeal.name} has very high glycemic impact! May cause rapid blood sugar spikes.`;
+      setShowReplacements(true);
+      
+      // Speak alert
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(`Warning! High sugar alert for ${foundMeal.name}`);
+        utterance.lang = 'en-IN';
+        window.speechSynthesis.speak(utterance);
+      }
+    } else if (foundMeal.sugar === 'high' || foundMeal.gi > 60) {
+      alertLevel = 'medium';
+      alertMessage = `⚠️ MODERATE WARNING: ${foundMeal.name} may cause moderate blood sugar rise. Consider portion control.`;
+    } else {
+      alertLevel = 'low';
+      alertMessage = `✅ DIABETES-FRIENDLY: Good choice! ${foundMeal.name} has low glycemic impact.`;
+    }
+
+    setSugarAlert({
+      level: alertLevel,
+      message: alertMessage,
+      gi: foundMeal.gi,
+      region: foundMeal.region,
+    });
+  };
+
+  // Real-time sugar check on input change
+  useEffect(() => {
+    if (mealDescription.trim()) {
+      checkSugarImpact(mealDescription);
+    }
+  }, [mealDescription]);
+
+  // Welcome message on component mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      toast({
+        title: '🎤 Voice Input Available!',
+        description: 'Click the microphone button to describe your meal with voice. 50+ Indian dishes supported!',
+      });
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const analyzeMeal = async () => {
     if (!mealDescription.trim()) {
@@ -480,102 +387,56 @@ export default function AIFoodLogPage() {
       return;
     }
 
-    if (!portionSize || parseFloat(portionSize) <= 0) {
-      toast({
-        title: 'Invalid Portion',
-        description: 'Please enter a valid portion size.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     setIsAnalyzing(true);
-    try {
-      const response = await apiRequest('/api/ai-food-log/analyze', {
-        method: 'POST',
-        body: JSON.stringify({
-          description: mealDescription,
-          portionMultiplier: parseFloat(portionSize),
-          portionUnit,
-          mealType,
-          mealTiming, // Pass meal timing context for better analysis
-          cookingStyle: cookingStyle || '',
-          language: language === 'HI' ? 'hi-IN' : 'en-IN',
-        }),
-      });
+    
+    // Simulate analysis with 1.5s delay (matching your HTML design)
+    setTimeout(async () => {
+      try {
+        const response = await apiRequest('/api/ai-food-log/analyze', {
+          method: 'POST',
+          body: JSON.stringify({
+            description: mealDescription,
+            portionMultiplier: parseFloat(portionSize),
+            portionUnit,
+            mealType,
+            mealTiming,
+            cookingStyle: cookingStyle || '',
+            language: language === 'HI' ? 'hi-IN' : 'en-IN',
+          }),
+        });
 
-      const data = await response.json();
-      
-      if (data.error === 'unknown_dish') {
-        toast({
-          title: 'Unknown Dish',
-          description: data.message || 'Could not recognize this meal. Please provide more details.',
-          variant: 'destructive',
-        });
-        setAnalysis(null);
-      } else if (data && data.totals) {
-        setAnalysis(data);
-        toast({
-          title: 'Analysis Complete',
-          description: `Meal analyzed successfully. Overall impact: ${data.totals.overallImpactLevel}`,
-        });
-      } else {
-        throw new Error('Invalid response structure from analysis');
-      }
-    } catch (error: any) {
-      console.error('Analysis error:', error);
-      
-      // If backend is unavailable (401 or network error), use local analysis
-      if (error.message.includes('401') || error.message.includes('Authentication') || error.message.includes('401')) {
-        console.log('Backend unavailable (401), using local analysis fallback...');
-        const localAnalysis = analyzeLocalMeal(mealDescription, parseFloat(portionSize));
+        const data = await response.json();
         
-        if (localAnalysis.error === 'unknown_dish') {
+        if (data.error === 'unknown_dish') {
           toast({
             title: 'Unknown Dish',
-            description: localAnalysis.message || 'Could not recognize this meal. Please provide more details.',
+            description: data.message || 'Could not recognize this meal.',
             variant: 'destructive',
           });
           setAnalysis(null);
-        } else {
-          setAnalysis(localAnalysis);
+        } else if (data && data.totals) {
+          setAnalysis(data);
           toast({
-            title: 'Analysis Complete (Local)',
-            description: `Meal analyzed locally. Overall impact: ${localAnalysis.totals.overallImpactLevel}. Note: Login for more accurate analysis.`,
+            title: 'Analysis Complete',
+            description: `Meal analyzed successfully. Overall impact: ${data.totals.overallImpactLevel}`,
           });
+          
+          // Smooth scroll to results
+          setTimeout(() => {
+            document.getElementById('analysis-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 100);
         }
-      } else {
-        console.log('Analysis error - checking if we should fallback to local analysis...');
-        // Also fallback to local analysis for any fetch/network errors or invalid responses
-        try {
-          const localAnalysis = analyzeLocalMeal(mealDescription, parseFloat(portionSize));
-          if (localAnalysis.error === 'unknown_dish') {
-            toast({
-              title: 'Unknown Dish',
-              description: localAnalysis.message || 'Could not recognize this meal. Please provide more details.',
-              variant: 'destructive',
-            });
-            setAnalysis(null);
-          } else {
-            setAnalysis(localAnalysis);
-            toast({
-              title: 'Analysis Complete (Local)',
-              description: `Meal analyzed locally. Overall impact: ${localAnalysis.totals.overallImpactLevel}. Note: Login for more accurate analysis.`,
-            });
-          }
-        } catch (fallbackError) {
-          console.error('Local fallback also failed:', fallbackError);
-          toast({
-            title: 'Analysis Failed',
-            description: error.message || 'Could not analyze meal. Please try again.',
-            variant: 'destructive',
-          });
-          setAnalysis(null);
-        }
+      } catch (error: any) {
+        console.error('Analysis error:', error);
+        toast({
+          title: 'Analysis Failed',
+          description: error.message || 'Could not analyze meal. Please try again.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsAnalyzing(false);
       }
-    } finally {
-      setIsAnalyzing(false);
-    }
+    }, 1500);
   };
 
   const logMealMutation = useMutation({
@@ -588,8 +449,8 @@ export default function AIFoodLogPage() {
     },
     onSuccess: () => {
       toast({
-        title: 'Meal Logged',
-        description: 'Your meal has been saved successfully.',
+        title: 'Meal Logged Successfully!',
+        description: 'Your meal has been saved and added to Recent Meals.',
       });
       queryClient.invalidateQueries({ queryKey: ['/api/ai-food-log/recent'] });
       setMealDescription('');
@@ -598,48 +459,11 @@ export default function AIFoodLogPage() {
       setCookingStyle('');
     },
     onError: (error: any) => {
-      // If 401 error, save to local storage as fallback
-      if (error.message.includes('401') || error.message.includes('Authentication')) {
-        // Save to localStorage
-        const mealToSave = {
-          description: mealDescription,
-          mealName: analysis?.mealName || 'Meal',
-          items: analysis?.items || [],
-          totals: analysis?.totals,
-          timestamp: new Date().toISOString(),
-        };
-        
-        const existingMeals = localStorage.getItem('localMealLogs');
-        let meals = [];
-        try {
-          meals = existingMeals ? JSON.parse(existingMeals) : [];
-        } catch (e) {
-          meals = [];
-        }
-        
-        meals.unshift(mealToSave); // Add to beginning
-        meals = meals.slice(0, 20); // Keep only last 20
-        localStorage.setItem('localMealLogs', JSON.stringify(meals));
-        setLocalMeals(meals);
-        
-        toast({
-          title: 'Meal Saved Locally',
-          description: 'Your meal is saved locally. Login to sync with cloud.',
-          variant: 'default',
-        });
-        
-        // Clear the form
-        setMealDescription('');
-        setAnalysis(null);
-        setPortionSize('1');
-        setCookingStyle('');
-      } else {
-        toast({
-          title: 'Failed to Log Meal',
-          description: error.message || 'Could not save meal.',
-          variant: 'destructive',
-        });
-      }
+      toast({
+        title: 'Failed to Log Meal',
+        description: error.message || 'Could not save meal.',
+        variant: 'destructive',
+      });
     },
   });
 
@@ -651,83 +475,80 @@ export default function AIFoodLogPage() {
     });
   };
 
-  const clearMealForm = () => {
-    // Stop voice recording if active
-    if (isRecording && recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsRecording(false);
-    }
-    // Clear all form data
+  const clearForm = () => {
     setMealDescription('');
     setAnalysis(null);
     setPortionSize('1');
     setPortionUnit('plate');
     setMealType('Lunch');
     setCookingStyle('');
-    setInputMode('type');
     toast({
-      title: 'Form Cleared',
-      description: 'All meal input has been cleared.',
+      title: 'Form Cleared!',
+      description: 'All meal input has been cleared successfully.',
     });
   };
 
   const getImpactColor = (level: string) => {
     switch (level) {
       case 'low': return 'text-emerald-400';
-      case 'medium': return 'text-yellow-400';
+      case 'medium': return 'text-amber-400';
       case 'high': return 'text-red-400';
       default: return 'text-gray-400';
     }
   };
 
-  const getImpactBadge = (level: string) => {
+  const getImpactBg = (level: string) => {
     switch (level) {
-      case 'low': return 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400';
-      case 'medium': return 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400';
-      case 'high': return 'bg-red-500/10 border-red-500/30 text-red-400';
-      default: return 'bg-gray-500/10 border-gray-500/30 text-gray-400';
+      case 'low': return 'bg-emerald-900/20 border-emerald-500/30';
+      case 'medium': return 'bg-amber-900/20 border-amber-500/30';
+      case 'high': return 'bg-red-900/20 border-red-500/30';
+      default: return 'bg-gray-900/20 border-gray-500/30';
     }
   };
 
   return (
-    <div className="flex h-screen w-full bg-gradient-to-br from-neutral-900 via-zinc-900 to-neutral-950 relative overflow-hidden">
+    <div className="flex h-screen w-full relative overflow-hidden" style={{ backgroundColor: '#0f172a' }}>
       <AppSidebar />
-      <div className="flex flex-col flex-1 overflow-hidden relative" style={{ zIndex: 10, marginLeft: '280px' }}>
-        <header className="flex items-center justify-between border-b border-border" style={{ height: '72px', padding: '0 24px' }}>
+      <div className="flex flex-col flex-1 overflow-hidden relative" style={{ zIndex: 10, marginLeft: '320px', background: 'linear-gradient(135deg, #0f1419 0%, #1a2332 100%)' }}>
+        
+        {/* Enhanced Header */}
+        <header className="flex items-center justify-between border-b" style={{ 
+          height: '80px', 
+          padding: '0 32px',
+          background: 'linear-gradient(135deg, #0d3c61 0%, #1a5c8f 100%)',
+          borderBottom: '1px solid rgba(33, 200, 155, 0.1)',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
+        }}>
           <div className="flex items-center gap-4">
-            <Utensils className="w-6 h-6 text-primary" />
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{
+              background: 'linear-gradient(135deg, #21C89B 0%, #16A085 100%)',
+              boxShadow: '0 4px 20px rgba(33, 200, 155, 0.4)'
+            }}>
+              <Brain className="w-6 h-6 text-white animate-pulse" />
+            </div>
             <div>
-              <h2 className="text-xl font-semibold">Intelligent Nutrition & Carb Logging</h2>
-              <p className="text-sm text-muted-foreground">AI-powered meal analysis with Indian food understanding</p>
+              <h1 className="text-2xl font-bold text-white">Intelligent Nutrition & Carb Logging</h1>
+              <p className="text-sm text-cyan-300">AI-powered meal analysis with Indian food understanding</p>
             </div>
           </div>
           
           {/* Language Switcher */}
           <div className="flex items-center gap-2">
-            <Globe className="w-4 h-4 text-muted-foreground" />
+            <Globe className="w-5 h-5 text-cyan-300" />
             <Select 
               value={language} 
               onValueChange={(value) => {
                 const langMap: Record<Language, string> = {
-                  'EN': 'en',
-                  'HI': 'hi',
-                  'KN': 'kn',
-                  'TE': 'te',
-                  'TA': 'en',
-                  'MR': 'en',
-                  'BN': 'en',
-                  'GU': 'en',
-                  'ML': 'en',
-                  'PA': 'en',
-                  'OR': 'en',
-                  'AS': 'en',
+                  'EN': 'en', 'HI': 'hi', 'KN': 'kn', 'TE': 'te',
+                  'TA': 'en', 'MR': 'en', 'BN': 'en', 'GU': 'en',
+                  'ML': 'en', 'PA': 'en', 'OR': 'en', 'AS': 'en',
                 };
                 const i18nLang = langMap[value as Language];
                 changeLanguage(i18nLang);
                 setLanguage(value as Language);
               }}
             >
-              <SelectTrigger className="h-8 w-[140px]">
+              <SelectTrigger className="h-10 w-[150px] border-cyan-500/30 bg-white/10 text-white hover:bg-white/20">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -735,417 +556,602 @@ export default function AIFoodLogPage() {
                 <SelectItem value="HI">हिन्दी (Hindi)</SelectItem>
                 <SelectItem value="KN">ಕನ್ನಡ (Kannada)</SelectItem>
                 <SelectItem value="TE">తెలుగు (Telugu)</SelectItem>
-                <SelectItem value="TA">தமிழ் (Tamil)</SelectItem>
-                <SelectItem value="MR">मराठी (Marathi)</SelectItem>
-                <SelectItem value="BN">বাংলা (Bengali)</SelectItem>
-                <SelectItem value="GU">ગુજરાતી (Gujarati)</SelectItem>
-                <SelectItem value="ML">മലയാളം (Malayalam)</SelectItem>
-                <SelectItem value="PA">ਪੰਜਾਬੀ (Punjabi)</SelectItem>
-                <SelectItem value="OR">ଓଡ଼ିଆ (Odia)</SelectItem>
-                <SelectItem value="AS">অসমীয়া (Assamese)</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto">
-          <div className="w-full" style={{ padding: '24px 32px' }}>
-            {/* Disclaimer */}
-            <Alert className="mb-6 border-emerald-500/20 bg-emerald-500/5">
-              <Info className="h-4 w-4 text-emerald-400" />
-              <AlertDescription className="text-sm text-muted-foreground">
-                <strong>Educational Purpose Only:</strong> Nutrition values and health impact are estimates and may not be fully accurate. Always follow your doctor or dietitian's advice.
-              </AlertDescription>
-            </Alert>
+        <main className="flex-1 overflow-y-auto" style={{ padding: '32px' }}>
+          {/* Warning Box */}
+          <Alert className="mb-6 border-amber-500/30" style={{ 
+            background: 'linear-gradient(135deg, rgba(255, 248, 225, 0.1) 0%, rgba(255, 236, 179, 0.1) 100%)',
+            borderLeft: '5px solid #ff9800'
+          }}>
+            <AlertTriangle className="h-5 w-5 text-amber-400 animate-pulse" />
+            <AlertDescription className="text-sm text-gray-300">
+              <strong>Educational Purpose Only:</strong> Nutrition values and health impact are estimates and may not be fully accurate. Always follow your doctor or dietitian's advice.
+            </AlertDescription>
+          </Alert>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left Panel - Log New Meal */}
-              <Card className="glass-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Apple className="w-5 h-5 text-primary" />
-                    Log a New Meal
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Meal Timing Toggle - Moved from header */}
-                  <div className="flex items-center gap-2 pb-2 border-b border-border/50">
-                    <Clock className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground mr-2">Meal Time:</span>
-                    <div className="flex gap-1 p-1 rounded-lg bg-secondary/50">
-                      <Button
-                        size="sm"
-                        variant={mealTiming === 'AM' ? 'default' : 'ghost'}
-                        onClick={() => setMealTiming('AM')}
-                        className="h-7 px-3 text-xs font-medium"
-                        title="Morning meal context"
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Left Panel - Meal Logging Form */}
+            <div className="glass-card rounded-2xl p-8 border border-gray-700" style={{
+              background: 'rgba(255, 255, 255, 0.03)',
+              backdropFilter: 'blur(10px)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)'
+            }}>
+              <div className="flex items-center gap-3 mb-6">
+                <Sparkles className="w-6 h-6 text-primary animate-pulse" />
+                <h2 className="text-2xl font-bold text-white">Log a New Meal</h2>
+              </div>
+
+              {/* Meal Time Selection */}
+              <div className="mb-6">
+                <label className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-cyan-400" />
+                  Meal Time
+                </label>
+                <div className="grid grid-cols-4 gap-3">
+                  {[
+                    { id: 'Breakfast', label: 'Breakfast', icon: Sunrise },
+                    { id: 'Lunch', label: 'Lunch', icon: Sun },
+                    { id: 'Dinner', label: 'Dinner', icon: Moon },
+                    { id: 'Snack', label: 'Snack', icon: Coffee }
+                  ].map((option) => {
+                    const IconComp = option.icon;
+                    return (
+                      <button
+                        key={option.id}
+                        onClick={() => setMealType(option.id as MealTime)}
+                        className={`p-4 rounded-xl border-2 transition-all group ${
+                          mealType === option.id 
+                            ? 'border-cyan-500 bg-cyan-900/30' 
+                            : 'border-gray-700 hover:border-gray-600 hover:bg-white/5'
+                        }`}
                       >
-                        {currentTimingLabels.AM}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={mealTiming === 'PM' ? 'default' : 'ghost'}
-                        onClick={() => setMealTiming('PM')}
-                        className="h-7 px-3 text-xs font-medium"
-                        title="Afternoon meal context"
+                        <IconComp className={`w-6 h-6 mx-auto mb-2 transition-all ${
+                          mealType === option.id 
+                            ? 'text-cyan-400 animate-pulse' 
+                            : 'text-gray-400 group-hover:text-cyan-400 group-hover:scale-110'
+                        }`} />
+                        <div className="text-sm font-medium text-gray-300">{option.label}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Meal Description */}
+              <div className="mb-6">
+                <Label className="text-gray-300 mb-2 flex items-center gap-2">
+                  <Utensils className="w-4 h-4 text-primary" />
+                  Describe Your Meal *
+                </Label>
+                
+                {/* Quick Select Indian Dishes */}
+                <div className="mb-4">
+                  <div className="text-sm font-semibold text-gray-400 mb-2 flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-amber-400" />
+                    Quick Select (Popular Indian Dishes):
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {['curd rice', 'chapati', 'dal', 'biryani', 'idli', 'dosa', 'poha', 'paratha'].map((dish) => (
+                      <button
+                        key={dish}
+                        onClick={() => setMealDescription(dish)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                          mealDescription.toLowerCase() === dish
+                            ? 'bg-cyan-500 text-white'
+                            : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:scale-105'
+                        }`}
                       >
-                        {currentTimingLabels.PM}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={mealTiming === 'EV' ? 'default' : 'ghost'}
-                        onClick={() => setMealTiming('EV')}
-                        className="h-7 px-3 text-xs font-medium"
-                        title="Evening/Night meal context"
-                      >
-                        {currentTimingLabels.EV}
-                      </Button>
+                        <Utensils className="w-3 h-3 inline mr-1" />
+                        {dish}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <Textarea
+                  value={mealDescription}
+                  onChange={(e) => setMealDescription(e.target.value)}
+                  placeholder="e.g., curd rice with vegetables, 2 chapati with dal"
+                  rows={4}
+                  className="bg-gray-900/50 border-gray-700 text-white resize-none focus:border-primary"
+                />
+                
+                {/* Voice Input Section */}
+                <div className="mt-3 flex items-center gap-3">
+                  <button
+                    onClick={toggleVoiceRecording}
+                    className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
+                      isRecording 
+                        ? 'bg-gradient-to-r from-emerald-500 to-green-500 animate-pulse shadow-lg shadow-emerald-500/50'
+                        : 'bg-gradient-to-r from-red-500 to-pink-500 hover:scale-110 shadow-lg shadow-red-500/30'
+                    }`}
+                    title={isRecording ? 'Stop Recording' : 'Describe with Voice'}
+                  >
+                    {isRecording ? (
+                      <MicOff className="w-6 h-6 text-white" />
+                    ) : (
+                      <Mic className="w-6 h-6 text-white" />
+                    )}
+                  </button>
+                  <div className={`flex-1 px-4 py-3 rounded-xl text-sm ${
+                    isRecording 
+                      ? 'bg-emerald-900/30 text-emerald-300 border-l-4 border-emerald-500'
+                      : 'bg-gray-900/50 text-gray-400'
+                  }`}>
+                    <Info className="w-4 h-4 inline mr-2" />
+                    {voiceStatus}
+                  </div>
+                </div>
+                
+                <small className="text-gray-500 mt-2 block">✏️ You can edit the text before analyzing</small>
+              </div>
+
+              {/* Sugar Alert (Real-time) */}
+              {sugarAlert && (
+                <div className={`mb-6 p-4 rounded-xl border-l-4 animate-in slide-in-from-left duration-300 ${
+                  sugarAlert.level === 'high' 
+                    ? 'bg-red-900/20 border-red-500 shake'
+                    : sugarAlert.level === 'medium'
+                    ? 'bg-amber-900/20 border-amber-500'
+                    : 'bg-emerald-900/20 border-emerald-500'
+                }`}>
+                  <div className="flex items-start gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      sugarAlert.level === 'high' ? 'bg-red-500/20' :
+                      sugarAlert.level === 'medium' ? 'bg-amber-500/20' :
+                      'bg-emerald-500/20'
+                    }`}>
+                      {sugarAlert.level === 'high' ? (
+                        <AlertTriangle className="w-6 h-6 text-red-400" />
+                      ) : sugarAlert.level === 'medium' ? (
+                        <AlertTriangle className="w-6 h-6 text-amber-400" />
+                      ) : (
+                        <CheckCircle className="w-6 h-6 text-emerald-400" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className={`font-bold mb-1 ${
+                        sugarAlert.level === 'high' ? 'text-red-400' :
+                        sugarAlert.level === 'medium' ? 'text-amber-400' :
+                        'text-emerald-400'
+                      }`}>
+                        {sugarAlert.message}
+                      </p>
+                      <div className="flex gap-4 text-xs text-gray-400">
+                        <span><strong>Glycemic Index:</strong> {sugarAlert.gi} ({sugarAlert.gi > 70 ? 'High' : sugarAlert.gi > 55 ? 'Medium' : 'Low'})</span>
+                        <span>•</span>
+                        <span><strong>Region:</strong> {sugarAlert.region.toUpperCase()}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Portion Size & Unit */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                  <Label className="text-gray-300 mb-2">Portion Size *</Label>
+                  <Input
+                    type="number"
+                    step="0.5"
+                    min="0.5"
+                    max="5"
+                    value={portionSize}
+                    onChange={(e) => setPortionSize(e.target.value)}
+                    className="bg-gray-900/50 border-gray-700 text-white"
+                  />
+                </div>
+                <div>
+                  <Label className="text-gray-300 mb-2">Unit *</Label>
+                  <Select value={portionUnit} onValueChange={setPortionUnit}>
+                    <SelectTrigger className="bg-gray-900/50 border-gray-700 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="plate">Plate</SelectItem>
+                      <SelectItem value="bowl">Bowl</SelectItem>
+                      <SelectItem value="piece">Piece</SelectItem>
+                      <SelectItem value="cup">Cup</SelectItem>
+                      <SelectItem value="chapati">Chapati</SelectItem>
+                      <SelectItem value="idli">Idli</SelectItem>
+                      <SelectItem value="dosa">Dosa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Cooking Style */}
+              <div className="mb-6">
+                <Label className="text-gray-300 mb-2 flex items-center gap-2">
+                  <Flame className="w-4 h-4 text-amber-400" />
+                  Cooking Style (Optional)
+                </Label>
+                <Input
+                  value={cookingStyle}
+                  onChange={(e) => setCookingStyle(e.target.value)}
+                  placeholder="e.g., Fried, Grilled, Steamed"
+                  className="bg-gray-900/50 border-gray-700 text-white"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-4">
+                <Button
+                  onClick={analyzeMeal}
+                  disabled={isAnalyzing || !mealDescription.trim()}
+                  className="flex-1 h-14 text-lg font-semibold"
+                  style={{
+                    background: 'linear-gradient(135deg, #2a7de1 0%, #1a6bc8 100%)',
+                    boxShadow: isAnalyzing ? 'none' : '0 4px 15px rgba(42, 125, 225, 0.4)'
+                  }}
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-5 h-5 mr-2 animate-pulse" />
+                      Analyze Meal
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={clearForm}
+                  variant="outline"
+                  className="flex-1 h-14 text-lg font-semibold border-red-500/50 text-red-400 hover:bg-red-500/10"
+                >
+                  <X className="w-5 h-5 mr-2" />
+                  Clear Form
+                </Button>
+              </div>
+
+              {/* Analysis Results */}
+              {analysis && !analysis.error && (
+                <div id="analysis-results" className="mt-8 p-6 rounded-2xl border-2 animate-in fade-in duration-500" style={{
+                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%)',
+                  borderColor: 'rgba(16, 185, 129, 0.3)'
+                }}>
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                      <BarChart3 className="w-6 h-6 text-primary" />
+                      Analysis Results
+                    </h3>
+                    <div className={`px-4 py-2 rounded-full text-sm font-bold border-2 ${
+                      analysis.totals.overallImpactLevel === 'low' ? 'bg-emerald-900/30 text-emerald-400 border-emerald-500/50' :
+                      analysis.totals.overallImpactLevel === 'medium' ? 'bg-amber-900/30 text-amber-400 border-amber-500/50' :
+                      'bg-red-900/30 text-red-400 border-red-500/50'
+                    }`}>
+                      {analysis.totals.overallImpactLevel.toUpperCase()} IMPACT
                     </div>
                   </div>
 
-                  {/* Input Mode Toggle */}
-                  <div className="flex gap-2">
-                    <Button
-                      variant={inputMode === 'type' ? 'default' : 'outline'}
-                      onClick={() => setInputMode('type')}
-                      className="flex-1"
-                    >
-                      Type Manually
-                    </Button>
-                    <Button
-                      variant={inputMode === 'voice' ? 'default' : 'outline'}
-                      onClick={() => {
-                        setInputMode('voice');
-                        if (!isRecording) toggleRecording();
-                      }}
-                      className="flex-1"
-                    >
-                      {isRecording ? <><MicOff className="w-4 h-4 mr-2" /> Stop Voice</> : <><Mic className="w-4 h-4 mr-2" /> Voice Input</>}
-                    </Button>
-                  </div>
-
-                  {/* Stop Voice Button (visible when recording) */}
-                  {isRecording && (
-                    <Button
-                      onClick={toggleRecording}
-                      variant="outline"
-                      className="w-full border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/10"
-                    >
-                      <MicOff className="w-4 h-4 mr-2" />
-                      Stop Recording
-                    </Button>
+                  {/* Health Impact */}
+                  {analysis.healthImpact && (
+                    <div className="mb-6 p-4 rounded-xl bg-gray-900/50 border border-cyan-500/30">
+                      <h4 className="text-sm font-bold text-cyan-400 mb-2 flex items-center gap-2">
+                        <Info className="w-4 h-4" />
+                        Impact on Your Health
+                      </h4>
+                      <p className="text-sm text-gray-300">{analysis.healthImpact.description}</p>
+                    </div>
                   )}
 
-                  {/* Meal Description */}
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Describe Your Meal</Label>
-                    <Textarea
-                      id="description"
-                      placeholder="e.g., 2 chapati with dal, 1 cup chicken curry, salad"
-                      value={mealDescription}
-                      onChange={(e) => setMealDescription(e.target.value)}
-                      rows={4}
-                      className="resize-none"
-                    />
-                    {isRecording && (
-                      <p className="text-xs text-emerald-400 animate-pulse">🎤 Listening... Speak your meal description</p>
-                    )}
-                    {inputMode === 'voice' && !isRecording && mealDescription && (
-                      <p className="text-xs text-muted-foreground">✓ You can edit the text before analyzing</p>
-                    )}
-                  </div>
-
-                  {/* Form Fields Row */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="portionSize">Portion Size *</Label>
-                      <Input
-                        id="portionSize"
-                        type="number"
-                        step="0.5"
-                        min="0.5"
-                        max="5"
-                        value={portionSize}
-                        onChange={(e) => setPortionSize(e.target.value)}
-                        placeholder="1"
-                      />
+                  {/* Nutrition Grid */}
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="p-4 rounded-xl text-center transition-all hover:scale-105" style={{
+                      background: 'linear-gradient(135deg, rgba(42, 125, 225, 0.1) 0%, rgba(26, 107, 200, 0.1) 100%)'
+                    }}>
+                      <div className="text-3xl font-black text-cyan-400">{analysis.totals.carbs}g</div>
+                      <div className="text-xs text-gray-400 mt-1">Carbohydrates</div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="portionUnit">Unit *</Label>
-                      <Select value={portionUnit} onValueChange={setPortionUnit}>
-                        <SelectTrigger id="portionUnit">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="plate">Plate</SelectItem>
-                          <SelectItem value="bowl">Bowl</SelectItem>
-                          <SelectItem value="piece">Piece</SelectItem>
-                          <SelectItem value="cup">Cup</SelectItem>
-                          <SelectItem value="grams">Grams</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="p-4 rounded-xl text-center transition-all hover:scale-105" style={{
+                      background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%)'
+                    }}>
+                      <div className="text-3xl font-black text-emerald-400">{analysis.totals.protein}g</div>
+                      <div className="text-xs text-gray-400 mt-1">Protein</div>
+                    </div>
+                    <div className="p-4 rounded-xl text-center transition-all hover:scale-105" style={{
+                      background: 'linear-gradient(135deg, rgba(52, 211, 153, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%)'
+                    }}>
+                      <div className="text-3xl font-black text-green-400">{analysis.totals.fiber}g</div>
+                      <div className="text-xs text-gray-400 mt-1">Fiber</div>
+                    </div>
+                    <div className="p-4 rounded-xl text-center transition-all hover:scale-105" style={{
+                      background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%)'
+                    }}>
+                      <div className="text-3xl font-black text-blue-400">{analysis.totals.calories}</div>
+                      <div className="text-xs text-gray-400 mt-1">Calories</div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="mealType">Meal Type *</Label>
-                      <Select value={mealType} onValueChange={setMealType}>
-                        <SelectTrigger id="mealType">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Breakfast">Breakfast</SelectItem>
-                          <SelectItem value="Lunch">Lunch</SelectItem>
-                          <SelectItem value="Dinner">Dinner</SelectItem>
-                          <SelectItem value="Snack">Snack</SelectItem>
-                        </SelectContent>
-                      </Select>
+                  {/* Smart Replacements Section */}
+                  {showReplacements && mealDescription && (
+                    <div className="mb-6 p-6 rounded-2xl border-2 border-dashed border-cyan-500/30" style={{
+                      background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%)'
+                    }}>
+                      <h4 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                        <Repeat className="w-5 h-5 text-cyan-400" />
+                        Smart Replacements
+                      </h4>
+                      <p className="text-sm text-gray-400 mb-4">Healthier alternatives for better blood sugar control</p>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {(() => {
+                          const mealKey = Object.keys(replacementDatabase).find(key => 
+                            mealDescription.toLowerCase().includes(key)
+                          );
+                          const replacements = mealKey ? replacementDatabase[mealKey] : [];
+                          
+                          return replacements.map((replacement, index) => (
+                            <div key={index} className={`relative p-4 rounded-xl border-2 transition-all hover:scale-105 hover:shadow-lg ${
+                              index === 0 
+                                ? 'border-emerald-500 bg-gradient-to-br from-emerald-900/20 to-green-900/20'
+                                : 'border-gray-700 bg-gray-900/30 hover:border-cyan-500'
+                            }`}>
+                              {index === 0 && (
+                                <div className="absolute -top-3 right-3 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500 text-white shadow-lg">
+                                  BEST CHOICE
+                                </div>
+                              )}
+                              <div className="text-center mb-3">
+                                <Leaf className="w-10 h-10 mx-auto mb-2 text-emerald-400" />
+                                <h5 className="font-bold text-white">{replacement.name}</h5>
+                                <p className="text-xs text-gray-400 mt-1">{replacement.benefit}</p>
+                              </div>
+                              
+                              <div className="flex justify-around text-center mt-4 pt-4 border-t border-gray-700">
+                                <div>
+                                  <div className="text-lg font-bold text-emerald-400">{replacement.carbs}g</div>
+                                  <div className="text-xs text-gray-500">Carbs</div>
+                                  <div className="text-xs text-emerald-400">↓{(analysis?.totals.carbs || 0) - replacement.carbs}g</div>
+                                </div>
+                                <div>
+                                  <div className="text-lg font-bold text-cyan-400">GI {replacement.gi}</div>
+                                  <div className="text-xs text-gray-500">Index</div>
+                                  <div className="text-xs text-cyan-400">↓70</div>
+                                </div>
+                              </div>
+                              
+                              <Button
+                                onClick={() => {
+                                  setMealDescription(replacement.name);
+                                  setShowReplacements(false);
+                                  toast({
+                                    title: 'Great Choice!',
+                                    description: `Switched to ${replacement.name} - a healthier option!`,
+                                  });
+                                  // Speak confirmation
+                                  if ('speechSynthesis' in window) {
+                                    const utterance = new SpeechSynthesisUtterance(`Great choice! ${replacement.name} selected.`);
+                                    utterance.lang = 'en-IN';
+                                    window.speechSynthesis.speak(utterance);
+                                  }
+                                }}
+                                className="w-full mt-4 bg-emerald-500 hover:bg-emerald-600 text-white"
+                                size="sm"
+                              >
+                                <CheckCircle className="w-4 h-4 mr-1" />
+                                Choose This
+                              </Button>
+                            </div>
+                          ));
+                        })()}
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="cookingStyle">Cooking Style</Label>
-                      <Input
-                        id="cookingStyle"
-                        value={cookingStyle}
-                        onChange={(e) => setCookingStyle(e.target.value)}
-                        placeholder="e.g., Fried, Grilled"
-                      />
+                  )}
+
+                  {/* Dish Breakdown */}
+                  {analysis.items && analysis.items.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <UtensilsCrossed className="w-5 h-5 text-amber-400" />
+                        Dish Breakdown
+                      </h4>
+                      <div className="space-y-3">
+                        {analysis.items.map((item, idx) => (
+                          <div key={idx} className="p-4 rounded-xl bg-gray-900/30 border border-gray-700 hover:border-primary/50 transition-all">
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex items-center gap-2">
+                                <Target className={`w-4 h-4 ${getImpactColor(item.impactLevel)}`} />
+                                <span className="font-bold text-white">{item.dishName}</span>
+                                <span className="text-xs text-gray-500">({item.quantity} {item.unit})</span>
+                              </div>
+                              <span className={`px-3 py-1 rounded-full text-xs font-bold ${getImpactBg(item.impactLevel)} ${getImpactColor(item.impactLevel)}`}>
+                                {item.impactLevel}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
+                              {item.mainIngredients.slice(0, 4).map((ing, i) => (
+                                <span key={i} className="text-xs px-2 py-1 rounded-md bg-gray-800 text-gray-400 flex items-center gap-1">
+                                  <Leaf className="w-3 h-3 text-emerald-400" />
+                                  {ing}
+                                </span>
+                              ))}
+                            </div>
+                            <div className="flex gap-4 text-xs text-gray-400">
+                              <span>{item.nutrition.carbs}g carbs</span>
+                              <span>•</span>
+                              <span>{item.nutrition.protein}g protein</span>
+                              <span>•</span>
+                              <span>{item.nutrition.calories} cal</span>
+                              {item.nutrition.glycemicIndex && (
+                                <>
+                                  <span>•</span>
+                                  <span className="font-semibold text-amber-400">GI: {item.nutrition.glycemicIndex}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Benefits */}
+                  {analysis.benefits && analysis.benefits.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="text-sm font-bold text-emerald-400 mb-3 flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4" />
+                        Health Benefits
+                      </h4>
+                      <div className="space-y-2">
+                        {analysis.benefits.map((benefit, idx) => (
+                          <p key={idx} className="text-sm text-gray-300 flex items-start gap-2">
+                            <Leaf className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                            {benefit}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Alternatives */}
+                  {analysis.alternatives && analysis.alternatives.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="text-sm font-bold text-cyan-400 mb-3 flex items-center gap-2">
+                        <ArrowRight className="w-4 h-4" />
+                        Healthier Alternatives
+                      </h4>
+                      <div className="space-y-2">
+                        {analysis.alternatives.map((alt, idx) => (
+                          <p key={idx} className="text-sm text-cyan-300 flex items-start gap-2">
+                            <ArrowRight className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
+                            {alt}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Health Tips - Static Section */}
+                  <div className="mb-6 p-4 rounded-xl border border-cyan-500/20" style={{
+                    background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.05) 0%, rgba(59, 130, 246, 0.05) 100%)'
+                  }}>
+                    <h4 className="text-sm font-bold text-cyan-400 mb-3 flex items-center gap-2">
+                      <Volume2 className="w-4 h-4" />
+                      💡 Diabetes Management Tips
+                    </h4>
+                    <div className="space-y-2 text-xs text-gray-300">
+                      <p className="flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                        <span><strong>Portion Control:</strong> Eat smaller, frequent meals to maintain steady blood sugar levels.</span>
+                      </p>
+                      <p className="flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                        <span><strong>Choose Low GI:</strong> Prefer foods with Glycemic Index below 55 for better control.</span>
+                      </p>
+                      <p className="flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                        <span><strong>Stay Hydrated:</strong> Drink water regularly to help regulate blood sugar.</span>
+                      </p>
                     </div>
                   </div>
 
-                  {/* Analyze Button */}
-                  <div className="flex gap-2">
+                  {/* Log Meal Buttons */}
+                  <div className="flex gap-4 mt-6">
                     <Button
-                      onClick={analyzeMeal}
-                      disabled={isAnalyzing || !mealDescription.trim()}
-                      className="flex-1 bg-primary hover:bg-primary/90"
-                      size="lg"
+                      onClick={logMeal}
+                      disabled={logMealMutation.isPending}
+                      className="flex-1 h-12 font-bold"
+                      style={{ background: 'linear-gradient(135deg, #21C89B 0%, #16A085 100%)' }}
                     >
-                      {isAnalyzing ? (
+                      {logMealMutation.isPending ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Analyzing...
+                          Logging...
                         </>
                       ) : (
                         <>
-                          🧠 Analyze Meal
+                          <Save className="w-4 h-4 mr-2" />
+                          Log This Meal
                         </>
                       )}
                     </Button>
                     <Button
-                      onClick={clearMealForm}
+                      onClick={() => setAnalysis(null)}
                       variant="outline"
-                      className="flex-1 border-red-500/50 text-red-400 hover:bg-red-500/10"
-                      size="lg"
+                      className="flex-1 h-12 font-bold border-gray-600"
                     >
-                      Cancel
+                      <X className="w-4 h-4 mr-2" />
+                      Close Analysis
                     </Button>
                   </div>
+                </div>
+              )}
+            </div>
 
-                  {/* Analysis Results */}
-                  {analysis && !analysis.error && (
-                    <div className="space-y-4 mt-6 p-4 rounded-lg border border-emerald-500/30" style={{ background: 'rgba(16,185,129,0.08)' }}>
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-semibold text-foreground">Analysis Results</h3>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getImpactBadge(analysis.totals.overallImpactLevel)}`}>
-                          {analysis.totals.overallImpactLevel.toUpperCase()} IMPACT
+            {/* Right Panel - Recent Meals */}
+            <div className="glass-card rounded-2xl p-8 border border-gray-700" style={{
+              background: 'rgba(255, 255, 255, 0.03)',
+              backdropFilter: 'blur(10px)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)'
+            }}>
+              <div className="flex items-center gap-3 mb-6">
+                <BarChart3 className="w-6 h-6 text-blue-400 animate-pulse" />
+                <h2 className="text-2xl font-bold text-white">Recent Meals & Impact</h2>
+              </div>
+
+              {mealsLoading ? (
+                <div className="text-center py-16">
+                  <Loader2 className="w-10 h-10 animate-spin mx-auto text-primary mb-3" />
+                  <p className="text-gray-400">Loading meal history...</p>
+                </div>
+              ) : Array.isArray(recentMeals) && recentMeals.length > 0 ? (
+                <div className="space-y-4">
+                  {recentMeals.slice(0, 6).map((meal: any, idx: number) => (
+                    <div key={idx} className="p-4 rounded-xl bg-gray-900/30 border border-gray-700 hover:border-primary/50 transition-all group">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1">
+                          <p className="font-bold text-white group-hover:text-primary transition-colors">{meal.mealName || 'Meal'}</p>
+                          <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                            <Clock className="w-3 h-3" />
+                            {new Date(meal.timestamp).toLocaleString(undefined, {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              hour12: true
+                            })}
+                          </p>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          meal.totals?.overallImpactLevel === 'low' ? 'bg-emerald-900/30 text-emerald-400' :
+                          meal.totals?.overallImpactLevel === 'medium' ? 'bg-amber-900/30 text-amber-400' :
+                          'bg-red-900/30 text-red-400'
+                        }`}>
+                          {(meal.totals?.overallImpactLevel || 'medium').toUpperCase()}
                         </span>
                       </div>
-
-                      {/* Health Impact */}
-                      {analysis.healthImpact && (
-                        <div className="p-3 rounded-lg bg-secondary/50 border border-border/30">
-                          <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-                            <Info className="w-4 h-4 text-cyan-400" />
-                            Impact on Your Health
-                          </h4>
-                          <p className="text-sm text-muted-foreground">{analysis.healthImpact.description}</p>
+                      <div className="grid grid-cols-3 gap-3 text-xs">
+                        <div className="text-center p-2 rounded-lg bg-gray-800/50">
+                          <div className="font-bold text-cyan-400">{meal.totals?.carbs || 0}g</div>
+                          <div className="text-gray-500">Carbs</div>
                         </div>
-                      )}
-
-                      {/* Nutrition Totals */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-secondary/50 p-3 rounded-lg">
-                          <p className="text-xs text-muted-foreground">Carbs</p>
-                          <p className="text-lg font-bold text-primary">{analysis.totals.carbs}g</p>
+                        <div className="text-center p-2 rounded-lg bg-gray-800/50">
+                          <div className="font-bold text-emerald-400">{meal.totals?.protein || 0}g</div>
+                          <div className="text-gray-500">Protein</div>
                         </div>
-                        <div className="bg-secondary/50 p-3 rounded-lg">
-                          <p className="text-xs text-muted-foreground">Protein</p>
-                          <p className="text-lg font-bold text-emerald-400">{analysis.totals.protein}g</p>
-                        </div>
-                        <div className="bg-secondary/50 p-3 rounded-lg">
-                          <p className="text-xs text-muted-foreground">Fiber</p>
-                          <p className="text-lg font-bold text-green-400">{analysis.totals.fiber}g</p>
-                        </div>
-                        <div className="bg-secondary/50 p-3 rounded-lg">
-                          <p className="text-xs text-muted-foreground">Calories</p>
-                          <p className="text-lg font-bold text-blue-400">{analysis.totals.calories}</p>
+                        <div className="text-center p-2 rounded-lg bg-gray-800/50">
+                          <div className="font-bold text-blue-400">{meal.totals?.calories || 0}</div>
+                          <div className="text-gray-500">Cal</div>
                         </div>
                       </div>
-
-                      {/* Dishes Breakdown */}
-                      {analysis.items && analysis.items.length > 0 && (
-                        <div>
-                          <h4 className="text-sm font-semibold text-foreground mb-2">Dish Breakdown</h4>
-                          <div className="space-y-3">
-                            {analysis.items.map((item, idx) => (
-                              <div key={idx} className="bg-secondary/30 p-3 rounded-lg border border-border/20">
-                                <div className="flex justify-between items-start mb-2">
-                                  <div>
-                                    <span className="font-medium text-foreground">{item.dishName}</span>
-                                    <span className="text-xs text-muted-foreground ml-2">({item.quantity} {item.unit})</span>
-                                  </div>
-                                  <span className={`text-xs px-2 py-1 rounded-full ${getImpactBadge(item.impactLevel)}`}>
-                                    {item.impactLevel}
-                                  </span>
-                                </div>
-                                <p className="text-xs text-muted-foreground mb-2">
-                                  <strong>Ingredients:</strong> {item.mainIngredients.join(', ')}
-                                </p>
-                                <div className="flex gap-3 text-xs text-muted-foreground">
-                                  <span>{item.nutrition.carbs}g carbs</span>
-                                  <span>•</span>
-                                  <span>{item.nutrition.protein}g protein</span>
-                                  <span>•</span>
-                                  <span>{item.nutrition.calories} cal</span>
-                                  {item.nutrition.glycemicIndex && (
-                                    <>
-                                      <span>•</span>
-                                      <span>GI: {item.nutrition.glycemicIndex}</span>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Benefits */}
-                      {analysis.benefits && analysis.benefits.length > 0 && (
-                        <div>
-                          <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-                            <CheckCircle className="w-4 h-4 text-emerald-400" />
-                            Health Benefits
-                          </h4>
-                          <div className="space-y-1">
-                            {analysis.benefits.map((benefit, idx) => (
-                              <p key={idx} className="text-xs text-muted-foreground flex items-start gap-2">
-                                <Leaf className="w-3 h-3 text-emerald-400 flex-shrink-0 mt-0.5" />
-                                {benefit}
-                              </p>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Cautions */}
-                      {analysis.cautions && analysis.cautions.length > 0 && (
-                        <div>
-                          <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-                            <AlertCircle className="w-4 h-4 text-yellow-400" />
-                            Cautions
-                          </h4>
-                          <div className="space-y-1">
-                            {analysis.cautions.map((caution, idx) => (
-                              <p key={idx} className="text-xs text-yellow-400/90">⚠ {caution}</p>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Alternatives */}
-                      {analysis.alternatives && analysis.alternatives.length > 0 && (
-                        <div>
-                          <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-                            <TrendingUp className="w-4 h-4 text-cyan-400" />
-                            Better Alternatives
-                          </h4>
-                          <div className="space-y-1">
-                            {analysis.alternatives.map((alt, idx) => (
-                              <p key={idx} className="text-xs text-cyan-400/90">→ {alt}</p>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Log Meal Button */}
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={logMeal}
-                          disabled={logMealMutation.isPending}
-                          className="flex-1 bg-primary hover:bg-primary/90"
-                        >
-                          {logMealMutation.isPending ? 'Logging...' : 'Log This Meal'}
-                        </Button>
-                        <Button
-                          onClick={() => setAnalysis(null)}
-                          variant="outline"
-                          className="flex-1"
-                        >
-                          Clear & Edit
-                        </Button>
-                      </div>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Right Panel - Recent Meals */}
-              <Card className="glass-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-blue-400" />
-                    Recent Meals & Impact
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {mealsLoading ? (
-                    <div className="text-center py-12">
-                      <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
-                      <p className="text-muted-foreground mt-2">Loading meals...</p>
-                    </div>
-                  ) : Array.isArray(displayMeals) && displayMeals.length > 0 ? (
-                    <div className="space-y-3">
-                      {displayMeals.slice(0, 10).map((meal: any, idx: number) => (
-                        <div key={idx} className="p-3 rounded-lg bg-secondary/50 border border-border/50 hover:border-primary/30 transition-colors">
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <p className="font-medium text-sm">{meal.mealName || 'Meal'}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(meal.timestamp).toLocaleString(undefined, {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                  hour12: true
-                                })}
-                              </p>
-                            </div>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getImpactBadge(meal.totals?.overallImpactLevel || 'medium')}`}>
-                              {(meal.totals?.overallImpactLevel || 'medium').toUpperCase()}
-                            </span>
-                          </div>
-                          <div className="flex gap-3 text-xs">
-                            <span className="text-primary">{meal.totals?.carbs || 0}g carbs</span>
-                            <span className="text-emerald-400">{meal.totals?.protein || 0}g protein</span>
-                            <span className="text-blue-400">{meal.totals?.calories || 0} cal</span>
-                          </div>
-                          {meal.description && (
-                            <p className="text-xs text-muted-foreground mt-2 italic line-clamp-2">"{meal.description}"</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <Utensils className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                      <p className="text-foreground font-medium">No meals logged yet</p>
-                      <p className="text-muted-foreground text-sm">Start by analyzing your first meal!</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-16">
+                  <BarChart3 className="w-16 h-16 text-gray-600 mx-auto mb-4 animate-pulse" />
+                  <p className="text-white font-semibold mb-2">No readings yet</p>
+                  <p className="text-gray-500 text-sm">Your recent glucose readings will appear here</p>
+                </div>
+              )}
             </div>
           </div>
         </main>
