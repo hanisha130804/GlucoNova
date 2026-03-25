@@ -32,8 +32,12 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production --prefer-offline --no-audit
 
-# Copy built application from builder
+# Copy built application and migration files
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/shared ./shared
+COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
+COPY --from=builder /app/server/migrate.js ./server/migrate.js
+COPY migrations ./migrations
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs

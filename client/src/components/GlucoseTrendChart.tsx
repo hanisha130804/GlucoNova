@@ -180,8 +180,8 @@ export default function GlucoseTrendChart({ compact = false, glucoseData }: { co
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
             </div>
-            <p className="font-medium mb-1">No Data Yet</p>
-            <p className="text-xs text-center">Start logging your glucose to see trends</p>
+            <p className="font-medium mb-1">{t('glucose.trends.noDataYet')}</p>
+            <p className="text-xs text-center">{t('glucose.trends.startLogging')}</p>
           </div>
         )}
         {!isLoading && !error && chartData.length > 0 && (
@@ -216,17 +216,17 @@ export default function GlucoseTrendChart({ compact = false, glucoseData }: { co
                   color: '#f1f5f9',
                   fontSize: '12px'
                 }}
-                formatter={(value) => [`${value} mg/dL`, 'Glucose']}
+                formatter={(value) => [`${value} ${t('glucose.trends.glucoseUnit')}`, t('medical.glucose')]}
                 labelStyle={{ color: '#94a3b8', fontWeight: 'bold' }}
               />
               <ReferenceLine y={70} stroke="#ef4444" strokeDasharray="5 5" opacity={0.7} strokeWidth={1}>
-                <Label value="Low" position="insideTopRight" fill="#ef4444" fontSize={10} />
+                <Label value={t('glucose.trends.low')} position="insideTopRight" fill="#ef4444" fontSize={10} />
               </ReferenceLine>
               <ReferenceLine y={180} stroke="#f97316" strokeDasharray="5 5" opacity={0.7} strokeWidth={1}>
-                <Label value="High" position="insideTopRight" fill="#f97316" fontSize={10} />
+                <Label value={t('glucose.trends.high')} position="insideTopRight" fill="#f97316" fontSize={10} />
               </ReferenceLine>
               <ReferenceLine y={100} stroke="#22c55e" strokeDasharray="3 3" opacity={0.4} strokeWidth={1}>
-                <Label value="Target" position="insideTopLeft" fill="#22c55e" fontSize={10} />
+                <Label value={t('glucose.trends.target')} position="insideTopLeft" fill="#22c55e" fontSize={10} />
               </ReferenceLine>
               <Area 
                 type="monotone" 
@@ -243,13 +243,13 @@ export default function GlucoseTrendChart({ compact = false, glucoseData }: { co
       </div>
 
       <div className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground font-medium">{t('glucose.trends.currentStatus')}</span>
-          <span className="font-bold text-xl text-foreground">{currentGlucose} mg/dL</span>
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">{t('glucose.trends.currentStatus')}: </span>
+          <span className="font-bold text-xl text-foreground truncate">{currentGlucose} mg/dL</span>
+          <span className="ml-2 text-sm font-medium px-2 py-1 rounded-full bg-primary/20 text-primary whitespace-nowrap">
+            {getStatusText(currentGlucose)}
+          </span>
         </div>
-        <Badge className="bg-primary/20 text-primary px-3 py-1" data-testid="badge-status">
-          {getStatusText(currentGlucose)}
-        </Badge>
       </div>
     </Card>
   );

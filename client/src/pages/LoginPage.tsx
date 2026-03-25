@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import FloatingParticles from '@/components/FloatingParticles';
+import { apiRequest } from '@/lib/api';
 
 export default function LoginPage() {
   const { t } = useTranslation();
@@ -62,9 +63,45 @@ export default function LoginPage() {
       console.log('Login attempt for:', email);
       await login(email, password);
       
-      // Check if this is first login by checking if onboarding was completed
-      const onboardingCompleted = localStorage.getItem('onboardingCompleted');
-      if (!onboardingCompleted) {
+      // Wait a moment to ensure token is properly set after login
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Fetch user profile to check onboarding status from database
+      try {
+        const token = localStorage.getItem('token');
+        console.log('Token available for profile request:', !!token);
+        
+        const profileData = await apiRequest('/profile');
+        
+        console.log('Profile data received:', profileData);
+        
+        // For authenticated login, clear skip-auth flags
+        localStorage.removeItem('skipAuth');
+        localStorage.removeItem('onboardingSkipped');
+        
+        // Check if user has completed onboarding by checking for profile data
+        const hasProfileData = profileData?.profile && Object.keys(profileData.profile || {}).length > 0;
+        
+        if (!hasProfileData) {
+          // If user doesn't have profile data, they need to complete onboarding
+          localStorage.setItem('isNewUser', 'true');
+          localStorage.removeItem('onboardingCompleted'); // Ensure flag is not set
+          
+          console.log('=== New User Login ===');
+          console.log('No profile data found - setting onboarding flags');
+        } else {
+          // If user has profile data, they've likely completed onboarding
+          localStorage.setItem('onboardingCompleted', 'true');
+          localStorage.removeItem('isNewUser');
+          
+          console.log('=== Returning User Login ===');
+          console.log('Profile data exists - onboarding considered completed');
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        console.error('Error details:', error instanceof Error ? error.message : error);
+        
+        // If profile fetch fails, assume user needs onboarding
         // Clear skip-auth flag since this is authenticated login
         localStorage.removeItem('skipAuth');
         localStorage.removeItem('onboardingSkipped');
@@ -73,10 +110,7 @@ export default function LoginPage() {
         localStorage.setItem('isNewUser', 'true');
         
         console.log('=== New User Login ===');
-        console.log('Set isNewUser=true for mandatory onboarding');
-      } else {
-        console.log('=== Returning User Login ===');
-        console.log('Onboarding already completed');
+        console.log('Set isNewUser=true for mandatory onboarding (profile fetch error)');
       }
       
       toast({

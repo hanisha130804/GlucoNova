@@ -220,7 +220,7 @@ export default function GlucosePage() {
                     <CardHeader>
                       <CardTitle className="text-white flex items-center gap-2">
                         <Droplet className="w-5 h-5 text-cyan-400" />
-                        Log Glucose Reading
+                        {t('glucose.trends.logGlucoseReading')}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -230,14 +230,14 @@ export default function GlucosePage() {
                           <div className="space-y-2">
                             <Label className="flex items-center gap-2">
                               <Calendar className="w-4 h-4" />
-                              Date
+                              {t('glucose.trends.dateLabel')}
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Info className="w-4 h-4 text-muted-foreground cursor-help" />
                                   </TooltipTrigger>
                                   <TooltipContent className="max-w-xs">
-                                    <p className="text-sm">Missed an entry? You can add readings for past dates and times.</p>
+                                    <p className="text-sm">{t('glucose.trends.missedEntry')}</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
@@ -254,7 +254,7 @@ export default function GlucosePage() {
                           <div className="space-y-2">
                             <Label className="flex items-center gap-2">
                               <Clock className="w-4 h-4" />
-                              Time
+                              {t('glucose.trends.timeLabel')}
                             </Label>
                             <Input 
                               type="time" 
@@ -269,11 +269,11 @@ export default function GlucosePage() {
                         {/* Glucose - Always Required */}
                         <div className="space-y-2">
                           <Label className="text-base font-semibold text-white">
-                            Glucose (mg/dL) <span className="text-rose-400">*</span>
+                            {t('glucose.trends.glucose')} <span className="text-rose-400">*</span>
                           </Label>
                           <Input
                             type="number"
-                            placeholder="Enter glucose reading (40-400)"
+                            placeholder={t('glucose.trends.glucosePlaceholder')}
                             value={glucose}
                             onChange={(e) => setGlucose(e.target.value)}
                             min="40"
@@ -281,21 +281,21 @@ export default function GlucosePage() {
                             required
                             className="text-lg h-14 bg-white/10 border-white/20 text-white placeholder:text-gray-400"
                           />
-                          <p className="text-sm text-cyan-300">Valid range: 40-400 mg/dL</p>
+                          <p className="text-sm text-cyan-300">{t('glucose.trends.validRange')}</p>
                         </div>
 
                         {/* Insulin Section - Conditional */}
                         <div className="space-y-4 p-4 bg-blue-500/5 rounded-lg border border-blue-500/20">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <Label className="text-base font-semibold">I took insulin</Label>
+                              <Label className="text-base font-semibold">{t('glucose.trends.iTookInsulin')}</Label>
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Info className="w-4 h-4 text-muted-foreground cursor-help" />
                                   </TooltipTrigger>
                                   <TooltipContent className="max-w-xs">
-                                    <p className="text-sm">Enter insulin only if it was actually taken and prescribed by your doctor.</p>
+                                    <p className="text-sm">{t('glucose.trends.insulinOnlyIfTaken')}</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
@@ -309,24 +309,24 @@ export default function GlucosePage() {
                           {insulinTaken && (
                             <div className="space-y-4 pl-4 border-l-2 border-blue-500/30">
                               <div className="space-y-2">
-                                <Label>Insulin Type</Label>
+                                <Label>{t('glucose.trends.insulinTypeLabel')}</Label>
                                 <Select value={insulinType} onValueChange={setInsulinType}>
                                   <SelectTrigger>
-                                    <SelectValue placeholder="Select insulin type" />
+                                    <SelectValue placeholder={t('glucose.trends.insulinTypePlaceholder')} />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="Rapid-acting">Rapid-acting (Lispro/Aspart)</SelectItem>
-                                    <SelectItem value="Short-acting">Short-acting</SelectItem>
-                                    <SelectItem value="Long-acting">Long-acting (Basal)</SelectItem>
+                                    <SelectItem value="Rapid-acting">{t('glucose.trends.insulinTypes.rapidActing')}</SelectItem>
+                                    <SelectItem value="Short-acting">{t('glucose.trends.insulinTypes.shortActing')}</SelectItem>
+                                    <SelectItem value="Long-acting">{t('glucose.trends.insulinTypes.longActing')}</SelectItem>
                                   </SelectContent>
                                 </Select>
                               </div>
                               <div className="space-y-2">
-                                <Label>Dose (units)</Label>
+                                <Label>{t('glucose.trends.doseLabel')}</Label>
                                 <Input
                                   type="number"
                                   step="0.5"
-                                  placeholder="Enter dose"
+                                  placeholder={t('glucose.trends.dosePlaceholder')}
                                   value={insulinDose}
                                   onChange={(e) => setInsulinDose(e.target.value)}
                                   className="h-11"
@@ -340,14 +340,14 @@ export default function GlucosePage() {
                         <div className="space-y-4 p-4 bg-green-500/5 rounded-lg border border-green-500/20">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <Label className="text-base font-semibold">I ate food</Label>
+                              <Label className="text-base font-semibold">{t('glucose.trends.iAteFood')}</Label>
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Info className="w-4 h-4 text-muted-foreground cursor-help" />
                                   </TooltipTrigger>
                                   <TooltipContent className="max-w-xs">
-                                    <p className="text-sm">Carbohydrate logging helps explain post-meal glucose changes.</p>
+                                    <p className="text-sm">{t('glucose.trends.carbLoggingHelps')}</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
@@ -361,32 +361,32 @@ export default function GlucosePage() {
                           {foodConsumed && (
                             <div className="space-y-4 pl-4 border-l-2 border-green-500/30">
                               <div className="space-y-2">
-                                <Label>Meal Type</Label>
+                                <Label>{t('glucose.trends.mealTypeLabel')}</Label>
                                 <Select value={mealType} onValueChange={setMealType}>
                                   <SelectTrigger>
-                                    <SelectValue placeholder="Select meal type" />
+                                    <SelectValue placeholder={t('glucose.trends.mealTypePlaceholder')} />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="Breakfast">Breakfast</SelectItem>
-                                    <SelectItem value="Lunch">Lunch</SelectItem>
-                                    <SelectItem value="Dinner">Dinner</SelectItem>
-                                    <SelectItem value="Snack">Snack</SelectItem>
+                                    <SelectItem value="Breakfast">{t('glucose.trends.mealTypes.breakfast')}</SelectItem>
+                                    <SelectItem value="Lunch">{t('glucose.trends.mealTypes.lunch')}</SelectItem>
+                                    <SelectItem value="Dinner">{t('glucose.trends.mealTypes.dinner')}</SelectItem>
+                                    <SelectItem value="Snack">{t('glucose.trends.mealTypes.snack')}</SelectItem>
                                   </SelectContent>
                                 </Select>
                               </div>
                               <div className="space-y-2">
-                                <Label>Carbs (grams)</Label>
+                                <Label>{t('glucose.trends.carbsLabel')}</Label>
                                 <Input
                                   type="number"
-                                  placeholder="Enter carbs"
+                                  placeholder={t('glucose.trends.carbsPlaceholder')}
                                   value={carbs}
                                   onChange={(e) => setCarbs(e.target.value)}
                                 />
                               </div>
                               <div className="space-y-2">
-                                <Label>Food Notes (optional)</Label>
+                                <Label>{t('glucose.trends.foodNotesLabel')}</Label>
                                 <Textarea
-                                  placeholder="What did you eat?"
+                                  placeholder={t('glucose.trends.foodNotesPlaceholder')}
                                   className="resize-none"
                                   value={foodNotes}
                                   onChange={(e) => setFoodNotes(e.target.value)}
@@ -398,9 +398,9 @@ export default function GlucosePage() {
 
                         {/* General Notes */}
                         <div className="space-y-2">
-                          <Label>Additional Notes (optional)</Label>
+                          <Label>{t('glucose.trends.additionalNotesLabel')}</Label>
                           <Textarea
-                            placeholder="Any additional context (exercise, stress, etc.)"
+                            placeholder={t('glucose.trends.exerciseStressContext')}
                             className="resize-none"
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
@@ -415,10 +415,10 @@ export default function GlucosePage() {
                           {createHealthDataMutation.isPending ? (
                             <>
                               <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
-                              Saving Reading...
+                              {t('glucose.trends.savingReading')}
                             </>
                           ) : (
-                            'Save Glucose Reading'
+                            t('glucose.trends.saveGlucoseReading')
                           )}
                         </Button>
                       </form>

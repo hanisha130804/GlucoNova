@@ -31,7 +31,9 @@ import {
   Target,
   Zap,
   Volume2,
-  Repeat
+  Repeat,
+  Stethoscope,
+  HeartPulse
 } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -69,8 +71,24 @@ if (typeof document !== 'undefined') {
 }
 
 type Language = 'EN' | 'HI' | 'KN' | 'TE' | 'TA' | 'MR' | 'BN' | 'GU' | 'ML' | 'PA' | 'OR' | 'AS';
-type MealTime = 'Breakfast' | 'Lunch' | 'Dinner' | 'Snack';
+type MealTime = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 type SugarLevel = 'low' | 'medium' | 'high' | 'very high';
+
+// Language code mapping for voice recognition (BCP-47 format)
+const LANGUAGE_VOICE_CODES: Record<Language, string> = {
+  'EN': 'en-IN',  // Indian English
+  'HI': 'hi-IN',  // Hindi
+  'KN': 'kn-IN',  // Kannada
+  'TE': 'te-IN',  // Telugu
+  'TA': 'ta-IN',  // Tamil
+  'MR': 'mr-IN',  // Marathi
+  'BN': 'bn-IN',  // Bengali
+  'GU': 'gu-IN',  // Gujarati
+  'ML': 'ml-IN',  // Malayalam
+  'PA': 'pa-IN',  // Punjabi
+  'OR': 'or-IN',  // Odia
+  'AS': 'as-IN',  // Assamese
+};
 
 // Indian Food Database (50+ dishes)
 const indianFoodDatabase: Record<string, {
@@ -161,6 +179,76 @@ const replacementDatabase: Record<string, Array<{ name: string; carbs: number; p
   ],
 };
 
+// Multilingual food name aliases - maps local language names to English keys
+const FOOD_ALIASES: Record<string, string[]> = {
+  // Hindi (हिंदी) aliases
+  'biryani': ['बिरयानी', 'बिरियानी', 'बिर्यानी'],
+  'pulao': ['पुलाव', 'पुलाओ'],
+  'chapati': ['चपाती', 'रोटी'],
+  'roti': ['रोटी', 'फुल्का', 'रोटि'],
+  'dal': ['दाल', 'दल'],
+  'moong dal': ['मूंग दाल', 'मूँग दाल'],
+  'sambar': ['सांभर', 'साम्बर'],
+  'dosa': ['डोसा', 'दोसा'],
+  'idli': ['इडली', 'इडलि'],
+  'upma': ['उपमा'],
+  'poha': ['पोहा', 'पोहे'],
+  'paratha': ['पराठा', 'पराँठा'],
+  'aloo paratha': ['आलू पराठा', 'आलू का पराठा'],
+  'naan': ['नान', 'नाँ'],
+  'paneer': ['पनीर'],
+  'palak paneer': ['पालक पनीर'],
+  'chicken curry': ['चिकन करी', 'मुर्गी करी'],
+  'egg curry': ['अंडा करी', 'एग करी'],
+  'curd': ['दही'],
+  'buttermilk': ['छाछ', 'मट्ठा', 'लस्सी'],
+  'raita': ['रायता'],
+  'samosa': ['समोसा'],
+  'pakora': ['पकोड़ा', 'पकोड़े'],
+  'jalebi': ['जलेबी'],
+  'gulab jamun': ['गुलाब जामुन'],
+  'khichdi': ['खिचड़ी'],
+  'puri': ['पूरी', 'पुरी'],
+  'bhatura': ['भठूरा', 'भटूरा'],
+  
+  // Kannada & Telugu aliases merged
+  'rice': ['ಅನ್ನ', 'ಅಕ್ಕಿ', 'అన్నం', 'బియ్యం', 'चावल'],
+  'white rice': ['ಬಿಳಿ ಅನ್ನ', 'తెల్ల అన్నం'],
+  'rasam': ['ರಸಂ', 'ಸಾರು', 'రసం', 'చారు'],
+  'vada': ['वडा', 'ವಡೆ', 'ವಡಾ', 'వడ', 'గారెలు'],
+  'curd rice': ['ಮೊಸರನ್ನ', 'ತಂಬಳಿ ಅನ್ನ', 'పెరుగు అన్నం', 'దద్దోజనం'],
+  'vegetable curry': ['सब्जी करी', 'ತರಕಾರಿ ಪಲ್ಯ', 'కూరగాయల కూర'],
+  'fish curry': ['मछली करी', 'ಮೀನು ಸಾರು', 'చేప కూర'],
+};
+
+// Function to normalize food name from any language to English key
+const normalizeFoodName = (input: string): string => {
+  const inputLower = input.toLowerCase().trim();
+  
+  // Check direct match in English database
+  if (indianFoodDatabase[inputLower]) {
+    return inputLower;
+  }
+  
+  // Check aliases in all languages
+  for (const [englishKey, aliases] of Object.entries(FOOD_ALIASES)) {
+    for (const alias of aliases) {
+      if (inputLower.includes(alias.toLowerCase()) || alias.toLowerCase().includes(inputLower)) {
+        return englishKey;
+      }
+    }
+  }
+  
+  // Partial match in English database
+  for (const key of Object.keys(indianFoodDatabase)) {
+    if (inputLower.includes(key) || key.includes(inputLower)) {
+      return key;
+    }
+  }
+  
+  return inputLower;
+};
+
 interface DishItem {
   dishName: string;
   normalizedName: string;
@@ -215,7 +303,7 @@ export default function AIFoodLogPage() {
   // Form fields
   const [portionSize, setPortionSize] = useState('1');
   const [portionUnit, setPortionUnit] = useState('plate');
-  const [mealType, setMealType] = useState<MealTime>('Lunch');
+  const [mealType, setMealType] = useState<MealTime>('lunch');
   const [cookingStyle, setCookingStyle] = useState('');
   
   // New state for sugar alerts and replacements
@@ -241,11 +329,11 @@ export default function AIFoodLogPage() {
   // Auto-update meal type based on timing
   useEffect(() => {
     if (mealTiming === 'AM') {
-      setMealType('Breakfast');
+      setMealType('breakfast');
     } else if (mealTiming === 'PM') {
-      setMealType('Lunch');
+      setMealType('lunch');
     } else if (mealTiming === 'EV') {
-      setMealType('Dinner');
+      setMealType('dinner');
     }
   }, [mealTiming]);
 
@@ -253,37 +341,135 @@ export default function AIFoodLogPage() {
     queryKey: ['/api/ai-food-log/recent'],
   });
 
-  // Voice Recognition Setup
+  // Fetch user profile for personalized medical feedback
+  const { data: profileData } = useQuery<{ profile: any }>({
+    queryKey: ['/api/profile'],
+  });
+
+  // Fetch recent glucose readings for pattern analysis
+  const { data: healthData } = useQuery<{ data: any[] }>({
+    queryKey: ['/api/health-data'],
+  });
+
+  // Generate personalized medical feedback based on meal analysis and patient data
+  const generateMedicalFeedback = (mealAnalysis: MealAnalysis | null): string[] => {
+    if (!mealAnalysis) return [];
+    
+    const feedback: string[] = [];
+    const diabetesType = profileData?.profile?.diabetesType || 'Type 2';
+    const carbs = mealAnalysis.totals.carbs;
+    const fiber = mealAnalysis.totals.fiber;
+    const protein = mealAnalysis.totals.protein;
+    const impactLevel = mealAnalysis.totals.overallImpactLevel;
+    
+    // Calculate time-in-range from recent glucose data
+    const recentReadings = healthData?.data || [];
+    const inRangeCount = recentReadings.filter((r: any) => r.glucose >= 70 && r.glucose <= 180).length;
+    const timeInRange = recentReadings.length > 0 ? Math.round((inRangeCount / recentReadings.length) * 100) : 0;
+    
+    // Check for rice-based meals in history
+    const hasRiceHistory = mealDescription.toLowerCase().includes('rice') || 
+                          mealDescription.toLowerCase().includes('biryani') ||
+                          mealDescription.toLowerCase().includes('pulao');
+    
+    // Rule 1: Diabetes type specific feedback
+    if (diabetesType.includes('Type 2') || diabetesType.includes('2')) {
+      if (carbs > 60) {
+        feedback.push(t('food.medicalFeedback.type2HighCarb'));
+      } else if (carbs > 40) {
+        feedback.push(t('food.medicalFeedback.type2ModerateCarb'));
+      }
+    } else if (diabetesType.includes('Type 1') || diabetesType.includes('1')) {
+      feedback.push(t('food.medicalFeedback.type1Bolus', { carbs }));
+    } else if (diabetesType.toLowerCase().includes('pre')) {
+      feedback.push(t('food.medicalFeedback.prediabetic'));
+    }
+    
+    // Rule 2: High carb meal with rice history
+    if (hasRiceHistory && impactLevel === 'high') {
+      feedback.push(t('food.medicalFeedback.riceDelayed'));
+    }
+    
+    // Rule 3: Fiber benefit
+    if (fiber >= 5) {
+      feedback.push(t('food.medicalFeedback.fiberBenefit', { fiber }));
+    }
+    
+    // Rule 4: Protein balance
+    if (protein >= 15 && carbs > 40) {
+      feedback.push(t('food.medicalFeedback.proteinBalance'));
+    }
+    
+    // Rule 5: Post-meal monitoring recommendation
+    if (impactLevel === 'high' || impactLevel === 'medium') {
+      feedback.push(t('food.medicalFeedback.monitorPostMeal'));
+    }
+    
+    // Rule 6: Time-in-range based feedback
+    if (timeInRange < 50 && recentReadings.length >= 5) {
+      feedback.push(t('food.medicalFeedback.lowTimeInRange'));
+    }
+    
+    // Limit to 4 points max
+    return feedback.slice(0, 4);
+  };
+
+  // Voice Recognition Setup - updates when language changes
   useEffect(() => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = false;
-      recognitionRef.current.lang = 'en-IN'; // Indian English
+      // Use selected language for voice recognition
+      recognitionRef.current.lang = LANGUAGE_VOICE_CODES[language];
 
       recognitionRef.current.onstart = () => {
         setIsRecording(true);
-        setVoiceStatus('🎤 Listening... Speak now!');
+        setVoiceStatus(t('food.listening'));
       };
 
       recognitionRef.current.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
         setMealDescription(transcript);
-        setVoiceStatus(`✅ Heard: "${transcript}"`);
+        setVoiceStatus(`${t('food.captured')}: "${transcript}"`);
         
-        // Auto-detect portion size
-        const portionMatch = transcript.toLowerCase().match(/(\d+)\s*(bowl|plate|cup|piece|chapati|idli|dosa)/);
-        if (portionMatch) {
-          setPortionSize(portionMatch[1]);
-          setPortionUnit(portionMatch[2]);
+        // Auto-detect portion size - multilingual patterns
+        const portionPatterns = [
+          // English
+          /(\d+)\s*(bowl|plate|cup|piece|chapati|idli|dosa)/i,
+          // Hindi
+          /(\d+)\s*(ब़ाउल|प्लेट|कप|टुकड़ा|चपाती|इडली|डोसा)/i,
+          // Kannada
+          /(\d+)\s*(ಬೌಲ್|ಪ್ಲೇಟ್|ಕಪ್|ಇಡ್ಲಿ|ದೋಸೆ)/i,
+          // Telugu  
+          /(\d+)\s*(బౌల్|ప్లేట్|కప్|ఇడ్లీ|దోశ)/i
+        ];
+        
+        for (const pattern of portionPatterns) {
+          const portionMatch = transcript.match(pattern);
+          if (portionMatch) {
+            setPortionSize(portionMatch[1]);
+            // Map local unit names to standard units
+            const unitMap: Record<string, string> = {
+              'bowl': 'bowl', 'ब़ाउल': 'bowl', 'ಬೌಲ್': 'bowl', 'బౌల్': 'bowl',
+              'plate': 'plate', 'प्लेट': 'plate', 'ಪ್ಲೇಟ್': 'plate', 'ప్లేట్': 'plate',
+              'cup': 'cup', 'कप': 'cup', 'ಕಪ್': 'cup', 'కప్': 'cup',
+              'piece': 'piece', 'टुकड़ा': 'piece',
+              'chapati': 'chapati', 'चपाती': 'chapati', 'ಚಪಾತಿ': 'chapati', 'చపాతీ': 'chapati',
+              'idli': 'idli', 'इडली': 'idli', 'ಇಡ್ಲಿ': 'idli', 'ఇడ్లీ': 'idli',
+              'dosa': 'dosa', 'डोसा': 'dosa', 'ದೋಸೆ': 'dosa', 'దోశ': 'dosa'
+            };
+            setPortionUnit(unitMap[portionMatch[2].toLowerCase()] || portionMatch[2]);
+            break;
+          }
         }
 
-        setTimeout(() => setVoiceStatus('Click microphone to describe your meal'), 3000);
+        setTimeout(() => setVoiceStatus(t('food.tapMicPrompt')), 3000);
       };
 
       recognitionRef.current.onerror = (event: any) => {
-        setVoiceStatus(`❌ Error: ${event.error}`);
+        setVoiceStatus(t('food.messages.speechError', { error: event.error }));
         setIsRecording(false);
       };
 
@@ -291,17 +477,22 @@ export default function AIFoodLogPage() {
         setIsRecording(false);
       };
     }
-  }, []);
+  }, [language, t]);
 
   // Toggle voice recording
   const toggleVoiceRecording = () => {
     if (!recognitionRef.current) {
       toast({
-        title: 'Voice Not Supported',
-        description: 'Your browser does not support voice input.',
+        title: t('food.messages.speechNotSupported'),
+        description: t('food.messages.speechNotSupportedDesc'),
         variant: 'destructive',
       });
       return;
+    }
+
+    // Update language before starting
+    if (recognitionRef.current) {
+      recognitionRef.current.lang = LANGUAGE_VOICE_CODES[language];
     }
 
     if (isRecording) {
@@ -311,44 +502,46 @@ export default function AIFoodLogPage() {
     }
   };
 
-  // Check sugar impact function
+  // Check sugar impact function - uses multilingual normalization
   const checkSugarImpact = (mealName: string) => {
-    const mealLower = mealName.toLowerCase();
-    let foundMeal = null;
-
-    for (const [key, data] of Object.entries(indianFoodDatabase)) {
-      if (mealLower.includes(key)) {
-        foundMeal = { name: key, ...data };
-        break;
-      }
-    }
-
-    if (!foundMeal) {
+    // Normalize the food name from any language to English key
+    const normalizedName = normalizeFoodName(mealName);
+    const foodData = indianFoodDatabase[normalizedName];
+    
+    if (!foodData) {
       setSugarAlert(null);
       setShowReplacements(false);
       return;
     }
 
+    const foundMeal = { name: normalizedName, ...foodData };
     let alertLevel: 'low' | 'medium' | 'high' = 'low';
     let alertMessage = '';
 
     if (foundMeal.sugar === 'very high' || foundMeal.gi > 70) {
       alertLevel = 'high';
-      alertMessage = `⚠️ HIGH SUGAR ALERT: ${foundMeal.name} has very high glycemic impact! May cause rapid blood sugar spikes.`;
+      alertMessage = t('aiFood.alerts.highSugar', { food: foundMeal.name, gi: foundMeal.gi });
       setShowReplacements(true);
       
-      // Speak alert
+      // Speak alert in selected language
       if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(`Warning! High sugar alert for ${foundMeal.name}`);
-        utterance.lang = 'en-IN';
+        const alertText = language === 'HI' 
+          ? `चेतावनी! ${foundMeal.name} में उच्च चीनी है`
+          : language === 'KN'
+          ? `ಎಚ್ಚರಿಕೆ! ${foundMeal.name} ನಲ್ಲಿ ಹೆಚ್ಚಿನ ಸಕ್ಕರೆ ಇದೆ`
+          : language === 'TE'
+          ? `హెచ్చరిక! ${foundMeal.name} లో ఎక్కువ చక్కెర ఉంది`
+          : `Warning! High sugar alert for ${foundMeal.name}`;
+        const utterance = new SpeechSynthesisUtterance(alertText);
+        utterance.lang = LANGUAGE_VOICE_CODES[language];
         window.speechSynthesis.speak(utterance);
       }
     } else if (foundMeal.sugar === 'high' || foundMeal.gi > 60) {
       alertLevel = 'medium';
-      alertMessage = `⚠️ MODERATE WARNING: ${foundMeal.name} may cause moderate blood sugar rise. Consider portion control.`;
+      alertMessage = t('aiFood.alerts.moderateSugar', { food: foundMeal.name });
     } else {
       alertLevel = 'low';
-      alertMessage = `✅ DIABETES-FRIENDLY: Good choice! ${foundMeal.name} has low glycemic impact.`;
+      alertMessage = t('aiFood.alerts.lowSugar', { food: foundMeal.name });
     }
 
     setSugarAlert({
@@ -480,7 +673,7 @@ export default function AIFoodLogPage() {
     setAnalysis(null);
     setPortionSize('1');
     setPortionUnit('plate');
-    setMealType('Lunch');
+    setMealType('lunch');
     setCookingStyle('');
     toast({
       title: 'Form Cleared!',
@@ -593,10 +786,10 @@ export default function AIFoodLogPage() {
                 </label>
                 <div className="grid grid-cols-4 gap-3">
                   {[
-                    { id: 'Breakfast', label: 'Breakfast', icon: Sunrise },
-                    { id: 'Lunch', label: 'Lunch', icon: Sun },
-                    { id: 'Dinner', label: 'Dinner', icon: Moon },
-                    { id: 'Snack', label: 'Snack', icon: Coffee }
+                    { id: 'breakfast', label: t('food.breakfast'), icon: Sunrise },
+                    { id: 'lunch', label: t('food.lunch'), icon: Sun },
+                    { id: 'dinner', label: t('food.dinner'), icon: Moon },
+                    { id: 'snack', label: t('food.snack'), icon: Coffee }
                   ].map((option) => {
                     const IconComp = option.icon;
                     return (
@@ -839,6 +1032,55 @@ export default function AIFoodLogPage() {
                         Impact on Your Health
                       </h4>
                       <p className="text-sm text-gray-300">{analysis.healthImpact.description}</p>
+                    </div>
+                  )}
+
+                  {/* Personalized Medical Feedback Card */}
+                  {analysis && generateMedicalFeedback(analysis).length > 0 && (
+                    <div className="mb-6 p-5 rounded-2xl border-2" style={{
+                      background: 'linear-gradient(135deg, rgba(20, 184, 166, 0.08) 0%, rgba(6, 182, 212, 0.05) 100%)',
+                      borderColor: 'rgba(20, 184, 166, 0.4)',
+                      boxShadow: '0 4px 20px rgba(20, 184, 166, 0.15)'
+                    }}>
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{
+                          background: 'linear-gradient(135deg, #14b8a6 0%, #0891b2 100%)',
+                          boxShadow: '0 4px 15px rgba(20, 184, 166, 0.4)'
+                        }}>
+                          <Stethoscope className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="text-base font-bold text-teal-400">
+                            {t('food.medicalFeedback.title')}
+                          </h4>
+                          <p className="text-xs text-gray-500">
+                            {t('food.medicalFeedback.subtitle', { 
+                              type: profileData?.profile?.diabetesType || 'Type 2' 
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        {generateMedicalFeedback(analysis).map((point, idx) => (
+                          <div 
+                            key={idx} 
+                            className="flex items-start gap-3 p-3 rounded-xl bg-gray-900/40 border border-teal-500/20 hover:border-teal-500/40 transition-all"
+                          >
+                            <div className="w-6 h-6 rounded-full bg-teal-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <HeartPulse className="w-3.5 h-3.5 text-teal-400" />
+                            </div>
+                            <p className="text-sm text-gray-300 leading-relaxed">
+                              {point}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div className="mt-4 pt-3 border-t border-teal-500/20 flex items-center gap-2 text-xs text-gray-500">
+                        <Info className="w-3.5 h-3.5" />
+                        <span>{t('food.medicalFeedback.disclaimer')}</span>
+                      </div>
                     </div>
                   )}
 

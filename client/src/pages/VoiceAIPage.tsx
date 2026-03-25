@@ -9,8 +9,10 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useTranslation } from 'react-i18next';
 
 export default function VoiceAIPage() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [transcribedText, setTranscribedText] = useState('');
   const [suggestedMeals, setSuggestedMeals] = useState<any[]>([]);
@@ -31,8 +33,8 @@ export default function VoiceAIPage() {
     },
     onSuccess: () => {
       toast({
-        title: 'Success',
-        description: 'Meal logged successfully via voice',
+        title: t('voiceAI.success.title'),
+        description: t('voiceAI.success.description'),
       });
       queryClient.invalidateQueries({ queryKey: ['/api/meals'] });
       setTranscribedText('');
@@ -108,8 +110,8 @@ export default function VoiceAIPage() {
     // If no ingredients detected, return empty
     if (ingredients.length === 0) {
       toast({
-        title: 'Info',
-        description: 'I couldn\'t detect meal information. Try saying something like "I ate chicken with rice and vegetables"',
+        title: t('voiceAI.info.info'),
+        description: t('voiceAI.info.detectionFailed'),
         variant: 'destructive',
       });
       return [];
@@ -170,24 +172,24 @@ export default function VoiceAIPage() {
         <header className="flex items-center justify-between border-b border-border" style={{ height: '72px', padding: '0 24px' }}>
           <div className="flex items-center gap-4">
             <Mic className="w-6 h-6 text-primary" />
-            <h2 className="text-xl font-semibold">Voice AI Assistant</h2>
+            <h2 className="text-xl font-semibold">{t('voiceAI.title')}</h2>
           </div>
         </header>
         
         <main className="flex-1 overflow-y-auto">
           <div className="w-full" style={{ padding: '24px 32px' }}>
             <div className="mb-6">
-              <h1 className="text-3xl font-bold mb-1">Voice Assistant</h1>
-              <p className="text-muted-foreground">Log meals and get health insights using voice commands</p>
+              <h1 className="text-3xl font-bold mb-1">{t('voiceAI.header')}</h1>
+              <p className="text-muted-foreground">{t('voiceAI.subtitle')}</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Voice Input Section */}
               <div className="lg:col-span-2 space-y-6">
                 <VoiceAssistantCard
-                  title="Food Logging"
-                  subtitle="Tap the microphone to log your meal using voice"
-                  buttonText="Start Recording"
+                  title={t('voiceAI.foodLogging.title')}
+                  subtitle={t('voiceAI.foodLogging.subtitle')}
+                  buttonText={t('voiceAI.foodLogging.buttonText')}
                   onVoiceInput={handleVoiceInput}
                 />
 
@@ -197,7 +199,7 @@ export default function VoiceAIPage() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <MessageSquare className="h-5 w-5" />
-                        Transcribed Text
+                        {t('voiceAI.transcribedText.title')}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -212,14 +214,14 @@ export default function VoiceAIPage() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Sparkles className="h-5 w-5 text-primary" />
-                        AI Nutritional Analysis
+                        {t('voiceAI.aiAnalysis.title')}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       {/* Ingredients */}
                       {nutritionalAnalysis.ingredients.length > 0 && (
                         <div>
-                          <p className="text-xs font-semibold text-muted-foreground mb-2">Detected Ingredients:</p>
+                          <p className="text-xs font-semibold text-muted-foreground mb-2">{t('voiceAI.aiAnalysis.detectedIngredients')}</p>
                           <div className="flex flex-wrap gap-1">
                             {nutritionalAnalysis.ingredients.map((ing: string, idx: number) => (
                               <Badge key={idx} variant="secondary" className="text-xs">{ing}</Badge>
@@ -230,27 +232,27 @@ export default function VoiceAIPage() {
 
                       {/* Macros */}
                       <div>
-                        <p className="text-xs font-semibold text-muted-foreground mb-2">Macronutrients:</p>
+                        <p className="text-xs font-semibold text-muted-foreground mb-2">{t('voiceAI.aiAnalysis.macros')}</p>
                         <div className="grid grid-cols-2 gap-2 text-sm">
                           <div className="bg-background/50 rounded p-2">
-                            <span className="text-muted-foreground">Carbs:</span>
+                            <span className="text-muted-foreground">{t('food.analysis.carbs')}</span>
                             <span className="ml-1 font-bold text-orange-500">{nutritionalAnalysis.macros.carbs}g</span>
                           </div>
                           <div className="bg-background/50 rounded p-2">
-                            <span className="text-muted-foreground">Protein:</span>
+                            <span className="text-muted-foreground">{t('food.analysis.protein')}</span>
                             <span className="ml-1 font-bold text-blue-500">{nutritionalAnalysis.macros.protein}g</span>
                           </div>
                           <div className="bg-background/50 rounded p-2">
-                            <span className="text-muted-foreground">Fat:</span>
+                            <span className="text-muted-foreground">{t('food.analysis.fat')}</span>
                             <span className="ml-1 font-bold text-yellow-500">{nutritionalAnalysis.macros.fat}g</span>
                           </div>
                           <div className="bg-background/50 rounded p-2">
-                            <span className="text-muted-foreground">Sugar:</span>
+                            <span className="text-muted-foreground">{t('food.analysis.sugar')}</span>
                             <span className="ml-1 font-bold text-red-500">{nutritionalAnalysis.macros.sugar}g</span>
                           </div>
                         </div>
                         <div className="bg-primary/20 rounded p-2 mt-2 text-center">
-                          <span className="text-muted-foreground text-sm">Total Calories:</span>
+                          <span className="text-muted-foreground text-sm">{t('voiceAI.aiAnalysis.totalCalories')}</span>
                           <span className="ml-2 font-bold text-lg text-primary">{nutritionalAnalysis.macros.calories}</span>
                         </div>
                       </div>
@@ -264,12 +266,12 @@ export default function VoiceAIPage() {
                         <TrendingUp className="h-4 w-4" />
                         <AlertDescription className="space-y-2">
                           <div>
-                            <p className="font-semibold text-sm">Blood Sugar Impact: <span className="uppercase">{nutritionalAnalysis.insights.impact}</span></p>
-                            <p className="text-xs text-muted-foreground">Estimated Glycemic Load: {nutritionalAnalysis.insights.glycemicLoad}</p>
+                            <p className="font-semibold text-sm">{t('voiceAI.aiAnalysis.bloodSugarImpact')} <span className="uppercase">{nutritionalAnalysis.insights.impact}</span></p>
+                            <p className="text-xs text-muted-foreground">{t('voiceAI.aiAnalysis.estimatedGlycemicLoad')} {nutritionalAnalysis.insights.glycemicLoad}</p>
                           </div>
                           <div className="space-y-1">
-                            <p className="text-xs"><strong>Recommendation:</strong> {nutritionalAnalysis.insights.recommendation}</p>
-                            <p className="text-xs"><strong>Advisory:</strong> {nutritionalAnalysis.insights.advisory}</p>
+                            <p className="text-xs"><strong>{t('voiceAI.aiAnalysis.recommendation')}</strong> {nutritionalAnalysis.insights.recommendation}</p>
+                            <p className="text-xs"><strong>{t('voiceAI.aiAnalysis.advisory')}</strong> {nutritionalAnalysis.insights.advisory}</p>
                           </div>
                         </AlertDescription>
                       </Alert>
@@ -277,17 +279,17 @@ export default function VoiceAIPage() {
                       {/* Personalized Insights */}
                       {(profileData as any)?.profile && (
                         <div className="bg-background/50 rounded p-3 space-y-1">
-                          <p className="text-xs font-semibold text-muted-foreground">Personalized Insights:</p>
+                          <p className="text-xs font-semibold text-muted-foreground">{t('voiceAI.aiAnalysis.personalizedInsights')}</p>
                           <p className="text-xs">
-                            • Diabetes Type: <strong>{(profileData as any).profile.diabetesType || 'Not specified'}</strong>
+                            • {t('voiceAI.aiAnalysis.diabetesType')} <strong>{(profileData as any).profile.diabetesType || t('common.notSpecified')}</strong>
                           </p>
                           {(profileData as any).profile.typicalInsulin > 0 && (
                             <p className="text-xs">
-                              • Typical Insulin: <strong>{(profileData as any).profile.typicalInsulin} units</strong>
+                              • {t('voiceAI.aiAnalysis.typicalInsulin')} <strong>{(profileData as any).profile.typicalInsulin} {t('medical.units')}</strong>
                             </p>
                           )}
                           <p className="text-xs text-muted-foreground italic">
-                            This meal contains {nutritionalAnalysis.macros.carbs}g of carbs. Consider your insulin-to-carb ratio when dosing.
+                            {t('voiceAI.aiAnalysis.carbInfo', { carbs: nutritionalAnalysis.macros.carbs })}
                           </p>
                         </div>
                       )}
@@ -301,7 +303,7 @@ export default function VoiceAIPage() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Sparkles className="h-5 w-5" />
-                        Ready to Log
+                        {t('voiceAI.readyToLog.title')}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -311,10 +313,10 @@ export default function VoiceAIPage() {
                             <div className="flex-1">
                               <h4 className="font-semibold text-foreground mb-2">{meal.name}</h4>
                               <div className="grid grid-cols-2 gap-1 text-xs">
-                                <p><span className="text-muted-foreground">Carbs:</span> <strong>{meal.carbs}g</strong></p>
-                                <p><span className="text-muted-foreground">Protein:</span> <strong>{meal.protein}g</strong></p>
-                                <p><span className="text-muted-foreground">Fat:</span> <strong>{meal.fat}g</strong></p>
-                                <p><span className="text-muted-foreground">Calories:</span> <strong>{meal.calories}</strong></p>
+                                <p><span className="text-muted-foreground">{t('food.analysis.carbs')}</span> <strong>{meal.carbs}g</strong></p>
+                                <p><span className="text-muted-foreground">{t('food.analysis.protein')}</span> <strong>{meal.protein}g</strong></p>
+                                <p><span className="text-muted-foreground">{t('food.analysis.fat')}</span> <strong>{meal.fat}g</strong></p>
+                                <p><span className="text-muted-foreground">{t('food.analysis.totalCalories')}</span> <strong>{meal.calories}</strong></p>
                               </div>
                             </div>
                             <Button
@@ -323,7 +325,7 @@ export default function VoiceAIPage() {
                               size="sm"
                               className="ml-2"
                             >
-                              {createMealMutation.isPending ? 'Logging...' : 'Log Meal'}
+                              {createMealMutation.isPending ? t('voiceAI.logging.logging') : t('voiceAI.logging.logMeal')}
                             </Button>
                           </div>
                         </div>
@@ -337,27 +339,27 @@ export default function VoiceAIPage() {
               <div>
                 <Card className="p-6 glass-card sticky top-6">
                   <CardHeader>
-                    <CardTitle className="text-lg">Voice Tips</CardTitle>
+                    <CardTitle className="text-lg">{t('voiceAI.voiceTips.title')}</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3 text-sm">
                     <div>
-                      <p className="font-semibold text-foreground mb-1">Try saying:</p>
+                      <p className="font-semibold text-foreground mb-1">{t('voiceAI.voiceTips.trySaying')}</p>
                       <ul className="text-muted-foreground space-y-2">
-                        <li>"I ate chicken with rice and vegetables"</li>
-                        <li>"Had a banana and yogurt for breakfast"</li>
-                        <li>"Just had pasta with salmon, about 200 grams"</li>
-                        <li>"Consumed pizza and salad for lunch"</li>
+                        <li>"{t('voiceAI.voiceTips.example1')}"</li>
+                        <li>"{t('voiceAI.voiceTips.example2')}"</li>
+                        <li>"{t('voiceAI.voiceTips.example3')}"</li>
+                        <li>"{t('voiceAI.voiceTips.example4')}"</li>
                       </ul>
                     </div>
                     <div className="pt-3 border-t border-border">
-                      <p className="font-semibold text-foreground mb-2">Features:</p>
+                      <p className="font-semibold text-foreground mb-2">{t('voiceAI.voiceTips.features')}</p>
                       <ul className="text-muted-foreground space-y-1">
-                        <li>✓ Voice-activated logging</li>
-                        <li>✓ Complete nutritional analysis</li>
-                        <li>✓ Blood sugar impact prediction</li>
-                        <li>✓ Personalized diabetes insights</li>
-                        <li>✓ Automatic macronutrient detection</li>
-                        <li>✓ Hands-free operation</li>
+                        <li>{t('voiceAI.voiceTips.feature1')}</li>
+                        <li>{t('voiceAI.voiceTips.feature2')}</li>
+                        <li>{t('voiceAI.voiceTips.feature3')}</li>
+                        <li>{t('voiceAI.voiceTips.feature4')}</li>
+                        <li>{t('voiceAI.voiceTips.feature5')}</li>
+                        <li>{t('voiceAI.voiceTips.feature6')}</li>
                       </ul>
                     </div>
                   </CardContent>

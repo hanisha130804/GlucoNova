@@ -171,7 +171,7 @@ export default function RegisterPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full bg-white/5 border border-white/12 rounded-xl px-4 py-3.5 text-slate-50 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 transition-all duration-300"
-                placeholder="Enter your full name"
+                placeholder={t('auth.enterFullName')}
                 required
                 disabled={isLoading}
                 data-testid="input-name"
@@ -189,7 +189,7 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-white/5 border border-white/12 rounded-xl px-4 py-3.5 text-slate-50 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 transition-all duration-300"
-                placeholder="email@example.com"
+                placeholder={t('auth.emailPlaceholder')}
                 required
                 disabled={isLoading}
                 data-testid="input-email"
@@ -208,7 +208,7 @@ export default function RegisterPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pr-11 bg-white/5 border border-white/12 rounded-xl px-4 py-3.5 text-slate-50 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 transition-all duration-300"
-                  placeholder="Create a secure password"
+                  placeholder={t('auth.createPassword')}
                   required
                   disabled={isLoading}
                   data-testid="input-password"
@@ -236,7 +236,7 @@ export default function RegisterPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full pr-11 bg-white/5 border border-white/12 rounded-xl px-4 py-3.5 text-slate-50 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 transition-all duration-300"
-                  placeholder="Re-enter your password"
+                  placeholder={t('auth.reEnterPassword')}
                   required
                   disabled={isLoading}
                   data-testid="input-confirm-password"

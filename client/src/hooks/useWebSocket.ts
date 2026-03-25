@@ -35,10 +35,15 @@ export function useWebSocket() {
         
         console.log('WebSocket setup - hostname:', host, 'port:', port);
         
-        // In development, explicitly use port 8080
+        // In development, use the current port or default to 8080
         if (host === 'localhost' || host === '127.0.0.1') {
-          host = 'localhost:8080';
-          console.log('Development mode - using default port 8080');
+          if (port && port !== '' && port !== '80' && port !== '443') {
+            host = `${host}:${port}`;
+          } else {
+            // Default to port 8080 for development if no port is specified
+            host = `${host}:8080`;
+          }
+          console.log('Development mode - using port:', host);
         } else if (port && port !== '' && port !== 'undefined' && port !== '80' && port !== '443') {
           host = `${host}:${port}`;
         }

@@ -109,11 +109,11 @@ export const aiFoodLogs = pgTable("ai_food_logs", {
 // ==================== DRIZZLE-ZOD INSERT SCHEMAS ====================
 
 export const insertUserSchema = createInsertSchema(users, {
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  name: z.string().min(1, "Name is required").max(255),
+  email: z.string().email("Invalid email address").max(255),
+  password: z.string().min(6, "Password must be at least 6 characters").max(255),
   role: z.enum(userRoles),
-  isApproved: z.boolean().default(true),
+  isApproved: z.boolean().optional().default(true),
 }).omit({
   id: true,
   createdAt: true,

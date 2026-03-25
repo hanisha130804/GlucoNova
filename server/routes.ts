@@ -700,7 +700,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       });
     } catch (error: any) {
-      res.status(400).json({ message: error.message || 'Registration failed' });
+      console.error('Registration error:', error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ message: 'Validation error', errors: error.errors });
+      } else {
+        res.status(400).json({ message: error.message || 'Registration failed' });
+      }
     }
   });
 

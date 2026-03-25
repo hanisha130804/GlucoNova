@@ -62,17 +62,22 @@ export default function DashboardPage() {
   const [displayName, setDisplayName] = useState<string>('');
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  // Update display name from extracted patient name or user name
+  // Update display name - prioritize authenticated user's name
   useEffect(() => {
-    const extractedName = localStorage.getItem('extractedPatientName');
-    if (extractedName) {
-      setDisplayName(extractedName);
-      console.log('Using extracted patient name:', extractedName);
-    } else if (user?.name) {
+    // PRIORITY 1: Use authenticated user's name if available
+    if (user?.name) {
       setDisplayName(user.name);
       console.log('Using authenticated user name:', user.name);
     } else {
-      setDisplayName(t('common.user'));
+      // PRIORITY 2: Fall back to extracted patient name from OCR (only if not authenticated)
+      const extractedName = localStorage.getItem('extractedPatientName');
+      if (extractedName) {
+        setDisplayName(extractedName);
+        console.log('Using extracted patient name:', extractedName);
+      } else {
+        // PRIORITY 3: Default fallback
+        setDisplayName(t('common.user'));
+      }
     }
   }, [user, t]);
 
@@ -287,21 +292,46 @@ export default function DashboardPage() {
   // Get latest glucose - ONLY show real data, return 0 if no data
   const latestGlucose = hasRealData ? healthData.data[0].glucose : 200; // Default to 200 mg/dL as per requirements
   
-  // Safely extract insulin dose
+  // Safely extract insulin dose from health data (which includes insulin tracking)
   let latestInsulin = 0;
-  if (hasRealData && healthData.data[0].insulin) {
-    const insulinData: any = healthData.data[0].insulin;
-    if (typeof insulinData === 'object' && insulinData.dose) {
-      latestInsulin = insulinData.dose;
+  if (hasRealData) {
+    // Find the most recent health data entry with insulin
+    const dataWithInsulin = healthData.data.find((entry: any) => {
+      if (!entry.insulin) return false;
+      if (typeof entry.insulin === 'object' && entry.insulin.dose > 0) return true;
+      if (typeof entry.insulin === 'number' && entry.insulin > 0) return true;
+      return false;
+    });
+    
+    if (dataWithInsulin) {
+      const insulinData: any = dataWithInsulin.insulin;
+      if (typeof insulinData === 'object' && insulinData.dose) {
+        latestInsulin = insulinData.dose;
+      } else if (typeof insulinData === 'number') {
+        latestInsulin = insulinData;
+      }
     }
   }
   
   const latestReading = healthData?.data?.[0]; // Latest health data entry for timestamp
   
-  // Calculate total carbs - ONLY from real data, return 0 if no data
-  const totalCarbs = hasRealMeals 
-    ? mealsData.data.reduce((sum: number, meal: any) => sum + (meal.carbs || 0), 0) 
-    : 0;
+  // Calculate total carbs for TODAY only
+  const getTodayCarbs = () => {
+    if (!hasRealMeals) return 0;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return mealsData.data
+      .filter((meal: any) => {
+        const mealDate = new Date(meal.timestamp || meal.createdAt);
+        mealDate.setHours(0, 0, 0, 0);
+        return mealDate.getTime() === today.getTime();
+      })
+      .reduce((sum: number, meal: any) => sum + (meal.carbs || 0), 0);
+  };
+  
+  const totalCarbs = getTodayCarbs();
   
   const calculateTimeInRange = () => {
     // If no real data, return 0
@@ -531,20 +561,20 @@ export default function DashboardPage() {
                       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
                           <div className="flex items-center gap-3">
-                            <h1 className="text-2xl font-bold text-gray-200 group-hover:text-cyan-400 transition-colors">Welcome back, {displayName || 'Hanisha'}</h1>
+                            <h1 className="text-2xl font-bold text-gray-200 group-hover:text-cyan-400 transition-colors">{t('dashboard.welcomeBack', { name: displayName })}</h1>
                             {!hasRealData && (
                               <span className="px-2 py-1 text-xs rounded-full bg-blue-900/30 text-blue-400 border border-blue-700/30">
-                                Demo Mode
+                                {t('dashboard.demoMode')}
                               </span>
                             )}
                           </div>
                           <p className="text-gray-400 mt-1">
-                            Here's your health overview for today
+                            {t('dashboard.healthOverview')}
                           </p>
                         </div>
                         <div className="flex items-center gap-6">
                           <div className="text-right">
-                            <p className="text-sm text-gray-500">Current Status</p>
+                            <p className="text-sm text-gray-500">{t('dashboard.currentStatus')}</p>
                             <div className="flex items-center gap-2">
                               {latestGlucose > 0 ? (
                                 <>
@@ -552,7 +582,7 @@ export default function DashboardPage() {
                                   <p className={`text-2xl font-bold ${latestGlucose > 180 ? 'text-rose-400' : latestGlucose < 70 ? 'text-amber-400' : 'text-emerald-400'}`}>{latestGlucose} mg/dL</p>
                                   {latestGlucose > 180 && (
                                     <span className="ml-2 px-2 py-1 text-xs rounded-full bg-rose-900/30 text-rose-400 border border-rose-700/30">
-                                      High
+                                      {t('dashboard.high')}
                                     </span>
                                   )}
                                 </>
@@ -563,7 +593,7 @@ export default function DashboardPage() {
                           </div>
                           <div className="h-10 w-px bg-gray-700" />
                           <div className="text-right">
-                            <p className="text-sm text-gray-500">Time in Range</p>
+                            <p className="text-sm text-gray-500">{t('dashboard.timeInRange')}</p>
                             {hasRealData ? (
                               <div className="flex items-center gap-2">
                                 <div className="relative w-12 h-12">
@@ -611,20 +641,20 @@ export default function DashboardPage() {
                             <Sparkles className="w-5 h-5 text-emerald-400" />
                           </div>
                           <div>
-                            <h3 className="font-semibold text-gray-200">AI Summary</h3>
-                            <p className="text-sm text-gray-500">Last updated: {new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}</p>
+                            <h3 className="font-semibold text-gray-200">{t('dashboard.aiSummary.title')}</h3>
+                            <p className="text-sm text-gray-500">{t('dashboard.aiSummary.lastUpdated')} {new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}</p>
                           </div>
                         </div>
                         
                         {hasRealData ? (
                           <p className="text-gray-400 mb-4">
-                            Your glucose has been <span className="text-emerald-400 font-medium">{timeInRange >= 70 ? 'stable' : 'variable'}</span> at <span className={`font-medium ${latestGlucose > 180 ? 'text-red-400' : latestGlucose < 70 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                            {t('dashboard.aiSummary.glucoseStable')} <span className="text-emerald-400 font-medium">{timeInRange >= 70 ? t('dashboard.status.stable') : t('dashboard.status.variable')}</span> {t('dashboard.aiSummary.withAverage')} <span className={`font-medium ${latestGlucose > 180 ? 'text-red-400' : latestGlucose < 70 ? 'text-amber-400' : 'text-emerald-400'}`}>
                               {latestGlucose} mg/dL
-                            </span> for the past 8 hours. {timeInRange >= 70 ? 'Keep up the good work!' : 'Needs attention'}
+                            </span> {t('dashboard.aiSummary.stableHours')}. {timeInRange >= 70 ? t('dashboard.status.goodWork') : t('dashboard.status.needsAttention')}
                           </p>
                         ) : (
                           <p className="text-gray-400 mb-4">
-                            Start logging your glucose readings to receive personalized AI insights and health recommendations.
+                            {t('dashboard.aiInsights.logForInsights')}
                           </p>
                         )}
                         
@@ -635,8 +665,8 @@ export default function DashboardPage() {
                                 <AlertCircle className="w-3 h-3 text-amber-400" />
                               </div>
                               <div>
-                                <p className="text-sm text-amber-300 font-medium">Pattern Detected</p>
-                                <p className="text-xs text-amber-500">Post-meal spikes detected. Consider 10 min walk after eating.</p>
+                                <p className="text-sm text-amber-300 font-medium">{t('dashboard.patternDetected')}</p>
+                                <p className="text-xs text-amber-500">{t('dashboard.aiSummary.patternDetected')}</p>
                               </div>
                             </div>
                           </div>
@@ -652,8 +682,8 @@ export default function DashboardPage() {
                           <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mb-3 group-hover:bg-emerald-500/30 transition-all">
                             <Droplet className="w-6 h-6 text-emerald-400 group-hover:scale-110 transition-transform" />
                           </div>
-                          <p className="text-sm font-semibold text-emerald-300 text-center">Log Glucose</p>
-                          <p className="text-xs text-gray-500 mt-1">Track reading</p>
+                          <p className="text-sm font-semibold text-emerald-300 text-center">{t('dashboard.quickActions.glucose.label')}</p>
+                          <p className="text-xs text-gray-500 mt-1">{t('dashboard.quickActions.glucose.desc')}</p>
                         </button>
                         <button 
                           onClick={() => handleCardNavigation('/ai-food-log')}
@@ -662,8 +692,8 @@ export default function DashboardPage() {
                           <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center mb-3 group-hover:bg-amber-500/30 transition-all">
                             <Utensils className="w-6 h-6 text-amber-400 group-hover:scale-110 transition-transform" />
                           </div>
-                          <p className="text-sm font-semibold text-amber-300 text-center">Log Meal</p>
-                          <p className="text-xs text-gray-500 mt-1">Track food</p>
+                          <p className="text-sm font-semibold text-amber-300 text-center">{t('dashboard.quickActions.meal.label')}</p>
+                          <p className="text-xs text-gray-500 mt-1">{t('dashboard.quickActions.meal.desc')}</p>
                         </button>
                         <button 
                           onClick={() => handleCardNavigation('/reports-documents')}
@@ -672,8 +702,8 @@ export default function DashboardPage() {
                           <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center mb-3 group-hover:bg-blue-500/30 transition-all">
                             <FileText className="w-6 h-6 text-blue-400 group-hover:scale-110 transition-transform" />
                           </div>
-                          <p className="text-sm font-semibold text-blue-300 text-center">View Reports</p>
-                          <p className="text-xs text-gray-500 mt-1">Medical docs</p>
+                          <p className="text-sm font-semibold text-blue-300 text-center">{t('dashboard.quickActions.reports.label')}</p>
+                          <p className="text-xs text-gray-500 mt-1">{t('dashboard.quickActions.reports.desc')}</p>
                         </button>
                       </div>
                     </div>
@@ -689,12 +719,12 @@ export default function DashboardPage() {
                             <TrendingUp className="w-5 h-5 text-cyan-400" />
                           </div>
                           <div>
-                            <h3 className="font-semibold text-gray-200 group-hover:text-cyan-400 transition-colors">Glucose Trends</h3>
-                            <p className="text-xs text-gray-500">Past 24 hours</p>
+                            <h3 className="font-semibold text-gray-200 group-hover:text-cyan-400 transition-colors">{t('glucose.trends.title')}</h3>
+                            <p className="text-xs text-gray-500">{t('dashboard.trends.period')}</p>
                           </div>
                         </div>
                         <button className="text-sm text-cyan-400 hover:text-cyan-300 flex items-center gap-1">
-                          View Details <ArrowRight className="w-4 h-4" />
+                          {t('dashboard.trends.viewDetails')} <ArrowRight className="w-4 h-4" />
                         </button>
                       </div>
                       <div className="h-[280px]">
@@ -710,11 +740,11 @@ export default function DashboardPage() {
                       >
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm text-gray-500 mb-2">Carbs Today</p>
+                            <p className="text-sm text-gray-500 mb-2">{t('dashboard.metrics.carbsToday.label')}</p>
                             <p className="text-3xl font-bold text-amber-400 mb-1">{totalCarbs > 0 ? `${totalCarbs}g` : '--'}</p>
                             <div className="flex items-center gap-2 text-xs text-gray-500">
                               <span className="text-emerald-400">↓ 15%</span>
-                              <span>vs yesterday</span>
+                              <span>{t('dashboard.metrics.carbsToday.vsYesterday')}</span>
                             </div>
                           </div>
                           <div className="w-14 h-14 rounded-full bg-amber-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -728,10 +758,10 @@ export default function DashboardPage() {
                       >
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm text-gray-500 mb-2">Active Insulin</p>
+                            <p className="text-sm text-gray-500 mb-2">{t('dashboard.metrics.activeInsulin.label')}</p>
                             <p className="text-3xl font-bold text-purple-400 mb-1">{latestInsulin > 0 ? `${latestInsulin}u` : '--'}</p>
                             <div className="flex items-center gap-2 text-xs text-gray-500">
-                              <span className="text-purple-400">Last dose</span>
+                              <span className="text-purple-400">{t('dashboard.metrics.activeInsulin.lastDose')}</span>
                               <span>2h ago</span>
                             </div>
                           </div>
@@ -746,10 +776,10 @@ export default function DashboardPage() {
                       >
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm text-gray-500 mb-2">Activity Level</p>
+                            <p className="text-sm text-gray-500 mb-2">{t('dashboard.metrics.activityLevel.label')}</p>
                             <p className="text-3xl font-bold text-cyan-400 mb-1">--</p>
                             <div className="flex items-center gap-2 text-xs text-gray-500">
-                              <span className="text-cyan-400">Start tracking</span>
+                              <span className="text-cyan-400">{t('dashboard.metrics.activityLevel.startTracking')}</span>
                             </div>
                           </div>
                           <div className="w-14 h-14 rounded-full bg-cyan-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -767,7 +797,7 @@ export default function DashboardPage() {
                       {/* Health Profile Card */}
                       {isLoadingProfile ? (
                         <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-5 border border-white/5 shadow-sm">
-                          <p className="text-xs text-gray-500">Loading...</p>
+                          <p className="text-xs text-gray-500">{t('common.loading')}</p>
                         </div>
                       ) : profileData?.profile ? (
                         <button 
@@ -777,8 +807,8 @@ export default function DashboardPage() {
                           <div className="flex items-center gap-3 mb-4">
                             <UserCircle className="w-6 h-6 text-emerald-400 group-hover:scale-110 transition-transform" />
                             <div className="flex-1">
-                              <h3 className="font-semibold text-gray-200 group-hover:text-emerald-400 transition-colors">Health Profile</h3>
-                              <p className="text-xs text-gray-500">Click to update</p>
+                              <h3 className="font-semibold text-gray-200 group-hover:text-emerald-400 transition-colors">{t('dashboard.profile.title')}</h3>
+                              <p className="text-xs text-gray-500">{t('dashboard.profile.clickToUpdate')}</p>
                             </div>
                             <ArrowRight className="w-4 h-4 text-gray-500 group-hover:text-emerald-400 transition-colors" />
                           </div>
@@ -786,19 +816,19 @@ export default function DashboardPage() {
                           <div className="grid grid-cols-2 gap-3">
                             {profileData.profile.weight && (
                               <div className="text-center p-3 rounded-xl bg-white/5 border border-white/10">
-                                <p className="text-xs text-gray-500 mb-1">Weight</p>
+                                <p className="text-xs text-gray-500 mb-1">{t('dashboard.profile.weight')}</p>
                                 <p className="text-sm font-semibold text-gray-300">{profileData.profile.weight} kg</p>
                               </div>
                             )}
                             {profileData.profile.height && (
                               <div className="text-center p-3 rounded-xl bg-white/5 border border-white/10">
-                                <p className="text-xs text-gray-500 mb-1">Height</p>
+                                <p className="text-xs text-gray-500 mb-1">{t('dashboard.profile.height')}</p>
                                 <p className="text-sm font-semibold text-gray-300">{profileData.profile.height} cm</p>
                               </div>
                             )}
                             {profileData.profile.lastA1c && (
                               <div className="text-center p-3 rounded-xl bg-white/5 border border-white/10">
-                                <p className="text-xs text-gray-500 mb-1">Last A1C</p>
+                                <p className="text-xs text-gray-500 mb-1">{t('dashboard.profile.lastA1c')}</p>
                                 <p className="text-sm font-semibold text-emerald-400">{profileData.profile.lastA1c}%</p>
                               </div>
                             )}
@@ -813,15 +843,15 @@ export default function DashboardPage() {
                             {(!profileData.profile.weight || !profileData.profile.height || !profileData.profile.lastA1c) && (
                               <>
                                 <div className="text-center p-3 rounded-xl bg-white/5 border border-white/10">
-                                  <p className="text-xs text-gray-500 mb-1">Weight</p>
+                                  <p className="text-xs text-gray-500 mb-1">{t('dashboard.profile.weight')}</p>
                                   <p className="text-sm font-semibold text-gray-300">64 kg</p>
                                 </div>
                                 <div className="text-center p-3 rounded-xl bg-white/5 border border-white/10">
-                                  <p className="text-xs text-gray-500 mb-1">Height</p>
+                                  <p className="text-xs text-gray-500 mb-1">{t('dashboard.profile.height')}</p>
                                   <p className="text-sm font-semibold text-gray-300">165 cm</p>
                                 </div>
                                 <div className="text-center p-3 rounded-xl bg-white/5 border border-white/10">
-                                  <p className="text-xs text-gray-500 mb-1">Last A1C</p>
+                                  <p className="text-xs text-gray-500 mb-1">{t('dashboard.profile.lastA1c')}</p>
                                   <p className="text-sm font-semibold text-emerald-400">7.6%</p>
                                 </div>
                                 <div className="text-center p-3 rounded-xl bg-white/5 border border-white/10">
@@ -841,23 +871,23 @@ export default function DashboardPage() {
                           <div className="flex items-center gap-3 mb-4">
                             <UserCircle className="w-6 h-6 text-emerald-400 group-hover:scale-110 transition-transform" />
                             <div className="flex-1">
-                              <h3 className="font-semibold text-gray-200 group-hover:text-emerald-400 transition-colors">Health Profile</h3>
-                              <p className="text-xs text-gray-500">Click to update</p>
+                              <h3 className="font-semibold text-gray-200 group-hover:text-emerald-400 transition-colors">{t('dashboard.profile.title')}</h3>
+                              <p className="text-xs text-gray-500">{t('dashboard.profile.clickToUpdate')}</p>
                             </div>
                             <ArrowRight className="w-4 h-4 text-gray-500 group-hover:text-emerald-400 transition-colors" />
                           </div>
                           
                           <div className="grid grid-cols-2 gap-3">
                             <div className="text-center p-3 rounded-xl bg-white/5 border border-white/10">
-                              <p className="text-xs text-gray-500 mb-1">Weight</p>
+                              <p className="text-xs text-gray-500 mb-1">{t('dashboard.profile.weight')}</p>
                               <p className="text-sm font-semibold text-gray-300">64 kg</p>
                             </div>
                             <div className="text-center p-3 rounded-xl bg-white/5 border border-white/10">
-                              <p className="text-xs text-gray-500 mb-1">Height</p>
+                              <p className="text-xs text-gray-500 mb-1">{t('dashboard.profile.height')}</p>
                               <p className="text-sm font-semibold text-gray-300">165 cm</p>
                             </div>
                             <div className="text-center p-3 rounded-xl bg-white/5 border border-white/10">
-                              <p className="text-xs text-gray-500 mb-1">Last A1C</p>
+                              <p className="text-xs text-gray-500 mb-1">{t('dashboard.profile.lastA1c')}</p>
                               <p className="text-sm font-semibold text-emerald-400">7.6%</p>
                             </div>
                             <div className="text-center p-3 rounded-xl bg-white/5 border border-white/10">
@@ -882,8 +912,8 @@ export default function DashboardPage() {
                             <Brain className="w-6 h-6 text-cyan-300" />
                           </div>
                           <div className="flex-1">
-                            <h3 className="font-semibold text-white group-hover:text-cyan-300 transition-colors">AI Insulin Prediction</h3>
-                            <p className="text-xs text-cyan-200/60">Personalized dose suggestion</p>
+                            <h3 className="font-semibold text-white group-hover:text-cyan-300 transition-colors">{t('dashboard.aiPrediction.title')}</h3>
+                            <p className="text-xs text-cyan-200/60">{t('dashboard.prediction.suggestion')}</p>
                           </div>
                           <ArrowRight className="w-5 h-5 text-cyan-300 group-hover:translate-x-1 transition-transform" />
                         </div>
@@ -894,7 +924,7 @@ export default function DashboardPage() {
                           <>
                             <div className="text-center mb-4">
                               <div className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-                                {latestPrediction.prediction.predictedInsulin.toFixed(1)} units
+                                {latestPrediction.prediction.predictedInsulin.toFixed(1)} {t('dashboard.aiPrediction.units')}
                               </div>
                               <div className="flex items-center justify-center gap-2 mt-2">
                                 <div className="w-32 h-2 bg-gray-800 rounded-full overflow-hidden">
@@ -903,7 +933,7 @@ export default function DashboardPage() {
                                     style={{ width: `${(latestPrediction.prediction.confidence * 100).toFixed(0)}%` }}
                                   />
                                 </div>
-                                <span className="text-xs font-medium text-cyan-400">{(latestPrediction.prediction.confidence * 100).toFixed(0)}% confidence</span>
+                                <span className="text-xs font-medium text-cyan-400">{(latestPrediction.prediction.confidence * 100).toFixed(0)}% {t('insulin.prediction.confidence')}</span>
                               </div>
                             </div>
                             
@@ -915,9 +945,9 @@ export default function DashboardPage() {
                               disabled={generatePredictionMutation.isPending}
                               className="w-full py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-white font-semibold transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 flex items-center justify-center gap-2"
                             >
-                              {generatePredictionMutation.isPending ? 'Calculating...' : (
+                              {generatePredictionMutation.isPending ? t('insulin.prediction.generating') : (
                                 <>
-                                  <span>Calculate Dose</span>
+                                  <span>{t('dashboard.prediction.calculateDose')}</span>
                                   <ArrowRight className="w-4 h-4" />
                                 </>
                               )}
@@ -930,7 +960,7 @@ export default function DashboardPage() {
                                 <div className="text-5xl font-bold text-white">
                                   8.0
                                 </div>
-                                <div className="text-xl font-medium text-cyan-200">units</div>
+                                <div className="text-xl font-medium text-cyan-200">{t('dashboard.aiPrediction.units')}</div>
                               </div>
                               <div className="mt-4">
                                 <div className="flex items-center justify-center gap-2 mb-2">
@@ -941,7 +971,7 @@ export default function DashboardPage() {
                                     />
                                   </div>
                                 </div>
-                                <span className="text-sm font-medium text-cyan-200">80% confidence</span>
+                                <span className="text-sm font-medium text-cyan-200">80% {t('insulin.prediction.confidence')}</span>
                               </div>
                             </div>
                             
@@ -953,9 +983,9 @@ export default function DashboardPage() {
                               disabled={generatePredictionMutation.isPending}
                               className="w-full py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-white font-semibold transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 flex items-center justify-center gap-2"
                             >
-                              {generatePredictionMutation.isPending ? 'Calculating...' : (
+                              {generatePredictionMutation.isPending ? t('insulin.prediction.generating') : (
                                 <>
-                                  <span>Calculate Dose</span>
+                                  <span>{t('dashboard.prediction.calculateDose')}</span>
                                   <ArrowRight className="w-4 h-4" />
                                 </>
                               )}
@@ -976,8 +1006,8 @@ export default function DashboardPage() {
                             <Mic className="w-6 h-6 text-purple-400" />
                           </div>
                           <div className="flex-1">
-                            <h3 className="font-semibold text-gray-200 group-hover:text-purple-400 transition-colors">Voice Meal Log</h3>
-                            <p className="text-xs text-gray-500">Hands-free food tracking</p>
+                            <h3 className="font-semibold text-gray-200 group-hover:text-purple-400 transition-colors">{t('dashboard.voiceMealLog.title')}</h3>
+                            <p className="text-xs text-gray-500">{t('dashboard.voiceMealLog.tracking')}</p>
                           </div>
                           <ArrowRight className="w-4 h-4 text-gray-500 group-hover:text-purple-400 transition-colors" />
                         </div>
@@ -989,8 +1019,8 @@ export default function DashboardPage() {
                                   <Mic className="w-5 h-5 text-white" />
                                 </div>
                               </div>
-                              <span className="text-purple-300 font-semibold">Tap to Speak</span>
-                              <span className="text-xs text-gray-500 mt-1">Log meals instantly</span>
+                              <span className="text-purple-300 font-semibold">{t('dashboard.voiceMealLog.tapToSpeak')}</span>
+                              <span className="text-xs text-gray-500 mt-1">{t('dashboard.voiceMealLog.instantly')}</span>
                             </div>
                           </div>
                       </div>

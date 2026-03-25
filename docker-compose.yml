@@ -30,20 +30,22 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://gluconova_user:${DB_PASSWORD:-secure-password-change-in-prod}@postgres:5432/gluconova
-      JWT_SECRET: ${JWT_SECRET:-change-this-in-production}
-      SESSION_SECRET: ${SESSION_SECRET:-change-this-in-production}
+      JWT_SECRET: ${JWT_SECRET:-your-secure-jwt-secret-here-change-this-in-production}
+      SESSION_SECRET: ${SESSION_SECRET:-your-secure-session-secret-here-change-this-in-production}
       PORT: 8080
     ports:
-      - "8080:8080"
+      - "3000:8080"
     depends_on:
       postgres:
         condition: service_healthy
+    command: >
+      sh -c "node server/migrate.js && node dist/index.js"
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:8080/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
       interval: 30s
       timeout: 3s
       retries: 3
-      start_period: 10s
+      start_period: 30s
     networks:
       - gluconova-network
     restart: unless-stopped

@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Info, Calendar, Clock } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useTranslation } from 'react-i18next';
 
 // Enhanced schema for real-world glucose logging
 const enhancedGlucoseSchema = z.object({
@@ -38,6 +39,7 @@ interface EnhancedGlucoseFormProps {
 }
 
 export default function EnhancedGlucoseForm({ onSubmit, isPending, resetTrigger }: EnhancedGlucoseFormProps) {
+  const { t } = useTranslation();
   const [insulinTaken, setInsulinTaken] = useState(false);
   const [foodConsumed, setFoodConsumed] = useState(false);
 
@@ -113,7 +115,7 @@ export default function EnhancedGlucoseForm({ onSubmit, isPending, resetTrigger 
     <Card className="glass-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <span>Log Glucose Reading</span>
+          <span>{t('glucose.logGlucoseReading')}</span>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -128,7 +130,7 @@ export default function EnhancedGlucoseForm({ onSubmit, isPending, resetTrigger 
                   <FormItem>
                     <FormLabel className="flex items-center gap-2">
                       <Calendar className="w-4 h-4" />
-                      Date
+                      {t('glucose.dateLabel')}
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -154,7 +156,7 @@ export default function EnhancedGlucoseForm({ onSubmit, isPending, resetTrigger 
                   <FormItem>
                     <FormLabel className="flex items-center gap-2">
                       <Clock className="w-4 h-4" />
-                      Time
+                      {t('glucose.timeLabel')}
                     </FormLabel>
                     <FormControl>
                       <Input type="time" {...field} />
@@ -172,18 +174,18 @@ export default function EnhancedGlucoseForm({ onSubmit, isPending, resetTrigger 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-base font-semibold">
-                    Glucose Level (mg/dL) <span className="text-destructive">*</span>
+                    {t('glucose.glucose')} <span className="text-destructive">*</span>
                   </FormLabel>
                   <FormControl>
                     <Input
                       type="number"
-                      placeholder="Enter glucose reading (40-400)"
+                      placeholder={t('glucose.glucosePlaceholder')}
                       {...field}
                       className="text-lg h-12"
                     />
                   </FormControl>
                   <FormDescription>
-                    Valid range: 40-400 mg/dL
+                    {t('glucose.validRange')}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -194,7 +196,7 @@ export default function EnhancedGlucoseForm({ onSubmit, isPending, resetTrigger 
             <div className="space-y-4 p-4 bg-blue-500/5 rounded-lg border border-blue-500/20">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <label className="text-base font-semibold">I took insulin</label>
+                  <label className="text-base font-semibold">{t('glucose.iTookInsulin')}</label>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -222,17 +224,17 @@ export default function EnhancedGlucoseForm({ onSubmit, isPending, resetTrigger 
                     name="insulinType"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Insulin Type</FormLabel>
+                        <FormLabel>{t('glucose.insulinTypeLabel')}</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select insulin type" />
+                              <SelectValue placeholder={t('glucose.insulinTypePlaceholder')} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="rapid-acting">Rapid-acting (Lispro/Aspart)</SelectItem>
-                            <SelectItem value="short-acting">Short-acting</SelectItem>
-                            <SelectItem value="long-acting">Long-acting (Basal)</SelectItem>
+                            <SelectItem value="rapid-acting">{t('glucose.insulinTypes.rapidActing')}</SelectItem>
+                            <SelectItem value="short-acting">{t('glucose.insulinTypes.shortActing')}</SelectItem>
+                            <SelectItem value="long-acting">{t('glucose.insulinTypes.longActing')}</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -244,12 +246,12 @@ export default function EnhancedGlucoseForm({ onSubmit, isPending, resetTrigger 
                     name="insulinDose"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Insulin Dose (units)</FormLabel>
+                        <FormLabel>{t('glucose.doseLabel')}</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
                             step="0.5"
-                            placeholder="Enter dose"
+                            placeholder={t('glucose.dosePlaceholder')}
                             {...field}
                           />
                         </FormControl>
@@ -265,7 +267,7 @@ export default function EnhancedGlucoseForm({ onSubmit, isPending, resetTrigger 
             <div className="space-y-4 p-4 bg-green-500/5 rounded-lg border border-green-500/20">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <label className="text-base font-semibold">I ate food</label>
+                  <label className="text-base font-semibold">{t('glucose.iAteFood')}</label>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -293,18 +295,18 @@ export default function EnhancedGlucoseForm({ onSubmit, isPending, resetTrigger 
                     name="mealType"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Meal Type</FormLabel>
+                        <FormLabel>{t('glucose.mealTypeLabel')}</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select meal type" />
+                              <SelectValue placeholder={t('glucose.mealTypePlaceholder')} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="breakfast">Breakfast</SelectItem>
-                            <SelectItem value="lunch">Lunch</SelectItem>
-                            <SelectItem value="dinner">Dinner</SelectItem>
-                            <SelectItem value="snack">Snack</SelectItem>
+                            <SelectItem value="breakfast">{t('glucose.mealTypes.prePrandial')}</SelectItem>
+                            <SelectItem value="lunch">{t('glucose.mealTypes.postPrandial')}</SelectItem>
+                            <SelectItem value="dinner">{t('glucose.mealTypes.postPrandial')}</SelectItem>
+                            <SelectItem value="snack">{t('glucose.mealTypes.random')}</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -316,11 +318,11 @@ export default function EnhancedGlucoseForm({ onSubmit, isPending, resetTrigger 
                     name="carbs"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Carbohydrates (grams)</FormLabel>
+                        <FormLabel>{t('glucose.carbsLabel')}</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
-                            placeholder="Enter carbs"
+                            placeholder={t('glucose.carbsPlaceholder')}
                             {...field}
                           />
                         </FormControl>
@@ -333,10 +335,10 @@ export default function EnhancedGlucoseForm({ onSubmit, isPending, resetTrigger 
                     name="foodNotes"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Food Notes (optional)</FormLabel>
+                        <FormLabel>{t('glucose.foodNotesLabel')}</FormLabel>
                         <FormControl>
                           <Textarea
-                            placeholder="What did you eat?"
+                            placeholder={t('glucose.foodNotesPlaceholder')}
                             className="resize-none"
                             {...field}
                           />
@@ -355,10 +357,10 @@ export default function EnhancedGlucoseForm({ onSubmit, isPending, resetTrigger 
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Additional Notes (optional)</FormLabel>
+                  <FormLabel>{t('glucose.additionalNotesLabel')}</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Any additional context (exercise, stress, etc.)"
+                      placeholder={t('glucose.exerciseStressContext')}
                       className="resize-none"
                       {...field}
                     />
@@ -373,7 +375,7 @@ export default function EnhancedGlucoseForm({ onSubmit, isPending, resetTrigger 
               className="w-full h-12 text-base font-semibold"
               disabled={isPending || !form.formState.isValid}
             >
-              {isPending ? 'Saving Reading...' : 'Save Glucose Reading'}
+              {isPending ? t('glucose.savingReading') : t('glucose.saveGlucoseReading')}
             </Button>
           </form>
         </Form>

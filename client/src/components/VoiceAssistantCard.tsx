@@ -4,6 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Mic, Square } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n/config';
+
+// Map i18n language codes to BCP-47 speech recognition codes
+const getVoiceLanguageCode = (lang: string): string => {
+  const langMap: Record<string, string> = {
+    'en': 'en-IN',
+    'hi': 'hi-IN',
+    'kn': 'kn-IN',
+    'te': 'te-IN',
+  };
+  return langMap[lang] || 'en-IN';
+};
 
 interface VoiceAssistantCardProps {
   title: string;
@@ -32,7 +44,7 @@ export default function VoiceAssistantCard({
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = true;
-      recognitionRef.current.lang = 'en-US';
+      recognitionRef.current.lang = getVoiceLanguageCode(i18n.language);
 
       recognitionRef.current.onstart = () => {
         setIsListening(true);

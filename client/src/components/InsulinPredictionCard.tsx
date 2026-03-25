@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,6 +64,7 @@ export function InsulinPredictionCard({
   onSave?: (dose: any) => Promise<void>;
   userProfile?: any;
 }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<PredictionResult | null>(null);
@@ -205,10 +207,10 @@ export function InsulinPredictionCard({
       <Card className="w-full">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            💉 Insulin Prediction Calculator
+            💉 {t('insulin.calculator.title')}
           </CardTitle>
           <CardDescription>
-            Safe, explainable insulin dosing based on your glucose, carbs, and insulin parameters
+            {t('insulin.calculator.description')}
           </CardDescription>
         </CardHeader>
 
@@ -217,7 +219,7 @@ export function InsulinPredictionCard({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Current Glucose */}
             <div>
-              <Label className="text-sm font-medium">Current Glucose (mg/dL)</Label>
+              <Label className="text-sm font-medium">{t('insulin.calculator.currentGlucose')}</Label>
               <Input
                 type="number"
                 min="20"
@@ -234,7 +236,7 @@ export function InsulinPredictionCard({
 
             {/* Carbs */}
             <div>
-              <Label className="text-sm font-medium">Carbs (grams)</Label>
+              <Label className="text-sm font-medium">{t('insulin.calculator.carbsGrams')}</Label>
               <Input
                 type="number"
                 min="0"
@@ -252,15 +254,14 @@ export function InsulinPredictionCard({
             {/* ICR */}
             <div>
               <Label className="text-sm font-medium flex items-center gap-1">
-                ICR (Units per gram carbs)
+                {t('insulin.calculator.icr')}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="w-4 h-4 text-muted-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="max-w-xs">
-                      Insulin to Carb Ratio (ICR) tells you how much insulin to take per gram of carbs.
-                      For example, 1:10 means 1 unit of insulin per 10g of carbs.
+                      {t('insulin.calculator.icrTooltip')}
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -283,15 +284,14 @@ export function InsulinPredictionCard({
             {/* ISF */}
             <div>
               <Label className="text-sm font-medium flex items-center gap-1">
-                ISF (mg/dL per unit)
+                {t('insulin.calculator.isf')}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="w-4 h-4 text-muted-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="max-w-xs">
-                      Insulin Sensitivity Factor (ISF) tells you how much 1 unit of insulin will
-                      lower your blood glucose. For example, an ISF of 40 means 1 unit lowers glucose by 40 mg/dL.
+                      {t('insulin.calculator.isfTooltip')}
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -313,7 +313,7 @@ export function InsulinPredictionCard({
 
             {/* Correction Target */}
             <div>
-              <Label className="text-sm font-medium">Correction Target (mg/dL)</Label>
+              <Label className="text-sm font-medium">{t('insulin.calculator.correctionTarget')}</Label>
               <Input
                 type="number"
                 value={inputs.correction_target}
@@ -324,23 +324,23 @@ export function InsulinPredictionCard({
 
             {/* Insulin Type */}
             <div>
-              <Label className="text-sm font-medium">Insulin Type</Label>
+              <Label className="text-sm font-medium">{t('insulin.calculator.insulinType')}</Label>
               <select
                 value={inputs.insulin_type}
                 onChange={(e) => setInputs({ ...inputs, insulin_type: e.target.value })}
                 className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm"
               >
-                <option value="rapid">Rapid-Acting</option>
-                <option value="short">Short-Acting</option>
-                <option value="intermediate">Intermediate-Acting</option>
-                <option value="long">Long-Acting</option>
+                <option value="rapid">{t('insulin.types.rapid')}</option>
+                <option value="short">{t('insulin.types.short')}</option>
+                <option value="intermediate">{t('insulin.types.intermediate')}</option>
+                <option value="long">{t('insulin.types.long')}</option>
               </select>
             </div>
           </div>
 
           {/* Calculate Button */}
           <Button onClick={handleCalculate} disabled={loading} className="w-full md:w-auto">
-            {loading ? 'Calculating...' : 'Calculate Insulin Dose'}
+            {loading ? t('insulin.calculator.calculating') : t('insulin.calculator.calculateDose')}
           </Button>
 
           {/* Error */}
@@ -348,7 +348,7 @@ export function InsulinPredictionCard({
             <div className="flex gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800">
               <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-red-800 dark:text-red-300">Error</p>
+                <p className="text-sm font-medium text-red-800 dark:text-red-300">{t('common.error')}</p>
                 <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
               </div>
             </div>
@@ -359,7 +359,7 @@ export function InsulinPredictionCard({
             <div className="space-y-4">
               {/* Big Dose Number */}
               <div className="text-center p-6 rounded-lg bg-slate-50 dark:bg-slate-900/50 border-2 border-slate-200 dark:border-slate-700">
-                <p className="text-sm text-muted-foreground mb-2">Recommended Dose</p>
+                <p className="text-sm text-muted-foreground mb-2">{t('insulin.calculator.recommendedDose')}</p>
                 <p className={`text-5xl font-bold ${getDoseColor(result.rounded_units)}`}>
                   {result.rounded_units}
                 </p>
@@ -368,16 +368,16 @@ export function InsulinPredictionCard({
 
               {/* Breakdown */}
               <div className="space-y-2">
-                <p className="text-sm font-semibold">Dose Breakdown</p>
+                <p className="text-sm font-semibold">{t('insulin.calculator.doseBreakdown')}</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-800">
-                    <p className="text-xs text-muted-foreground">Carb Coverage</p>
+                    <p className="text-xs text-muted-foreground">{t('insulin.calculator.carbCoverage')}</p>
                     <p className="text-lg font-semibold">
                       {result.carb_units.toFixed(1)} U
                     </p>
                   </div>
                   <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-800">
-                    <p className="text-xs text-muted-foreground">Correction</p>
+                    <p className="text-xs text-muted-foreground">{t('insulin.calculator.correction')}</p>
                     <p className="text-lg font-semibold">
                       {(result.correction_units > 0 ? '+' : '') + result.correction_units.toFixed(1)} U
                     </p>
@@ -401,7 +401,7 @@ export function InsulinPredictionCard({
               {/* Explanation */}
               <details className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800">
                 <summary className="cursor-pointer text-sm font-semibold text-blue-900 dark:text-blue-300">
-                  How was this calculated?
+                  {t('insulin.calculator.howCalculated')}
                 </summary>
                 <p className="text-sm text-blue-800 dark:text-blue-400 mt-2">{result.explanation}</p>
               </details>
@@ -411,7 +411,7 @@ export function InsulinPredictionCard({
                 <div className="flex gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800">
                   <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium text-amber-900 dark:text-amber-300">⚠️ Safety Alert</p>
+                    <p className="text-sm font-medium text-amber-900 dark:text-amber-300">⚠️ {t('insulin.calculator.safetyAlert')}</p>
                     <p className="text-sm text-amber-800 dark:text-amber-400">{result.alert_message}</p>
                   </div>
                 </div>
@@ -423,7 +423,7 @@ export function InsulinPredictionCard({
                 disabled={result.alert}
                 className="w-full"
               >
-                Save as Planned Dose
+                {t('insulin.calculator.saveAsPlannedDose')}
               </Button>
             </div>
           )}
@@ -434,16 +434,16 @@ export function InsulinPredictionCard({
       <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm Insulin Dose</DialogTitle>
+            <DialogTitle>{t('insulin.calculator.confirmDose')}</DialogTitle>
             <DialogDescription>
-              Please review the details before applying this insulin dose
+              {t('insulin.calculator.reviewDetails')}
             </DialogDescription>
           </DialogHeader>
 
           {result && (
             <div className="space-y-4 py-4">
               <div className="rounded-lg bg-slate-50 dark:bg-slate-900/50 p-4">
-                <p className="text-sm text-muted-foreground mb-1">Recommended Dose</p>
+                <p className="text-sm text-muted-foreground mb-1">{t('insulin.calculator.recommendedDose')}</p>
                 <p className={`text-3xl font-bold ${getDoseColor(result.rounded_units)}`}>
                   {result.rounded_units} units
                 </p>
@@ -451,29 +451,29 @@ export function InsulinPredictionCard({
 
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <p className="text-muted-foreground">Current Glucose</p>
+                  <p className="text-muted-foreground">{t('insulin.calculator.currentGlucoseLabel')}</p>
                   <p className="font-medium">{inputs.current_glucose_mgdl} mg/dL</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Carbs</p>
+                  <p className="text-muted-foreground">{t('insulin.calculator.carbsLabel')}</p>
                   <p className="font-medium">{inputs.carbs_g}g</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Carb Units</p>
+                  <p className="text-muted-foreground">{t('insulin.calculator.carbUnits')}</p>
                   <p className="font-medium">{result.carb_units.toFixed(1)} U</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Correction</p>
+                  <p className="text-muted-foreground">{t('insulin.calculator.correction')}</p>
                   <p className="font-medium">{result.correction_units.toFixed(1)} U</p>
                 </div>
               </div>
 
               <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800">
                 <p className="text-xs font-semibold text-blue-900 dark:text-blue-300 mb-1">
-                  ℹ️ Safety Reminder
+                  ℹ️ {t('insulin.calculator.safetyReminder')}
                 </p>
                 <p className="text-xs text-blue-800 dark:text-blue-400">
-                  Always check your glucose before administering insulin. If you have any doubts, consult your healthcare provider.
+                  {t('insulin.calculator.safetyReminderText')}
                 </p>
               </div>
             </div>
@@ -481,10 +481,10 @@ export function InsulinPredictionCard({
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowConfirmModal(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button onClick={handleSaveDose} disabled={loading}>
-              {loading ? 'Recording...' : 'Apply Dose'}
+              {loading ? t('insulin.calculator.recording') : t('insulin.calculator.applyDose')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -96,7 +96,7 @@ export default function GlucoseInsulinPage() {
     if (carbsEaten && carbsAmount) {
       payload.carbs = {
         consumed: true,
-        meal: context === 'fasting' ? 'Breakfast' : context === 'beforeMeal' ? 'Before meal' : context === 'afterMeal' ? 'After meal' : 'Snack',
+        meal: context === 'fasting' ? t('food.breakfast') : context === 'beforeMeal' ? t('food.beforeMeal') : context === 'afterMeal' ? t('food.afterMeal') : t('food.snack'),
         grams: parseFloat(carbsAmount),
         notes: notes || undefined,
       };
@@ -159,8 +159,8 @@ export default function GlucoseInsulinPage() {
           <div className="flex items-center gap-4">
             <Activity className="w-6 h-6 text-primary" />
             <div>
-              <h2 className="text-xl font-semibold">Log Glucose Reading</h2>
-              <p className="text-sm text-muted-foreground">Quick and easy logging for better management</p>
+              <h2 className="text-xl font-semibold">{t('glucoseInsulin.logGlucoseReading')}</h2>
+              <p className="text-sm text-muted-foreground">{t('glucoseInsulin.quickLogging')}</p>
             </div>
           </div>
         </header>
@@ -172,9 +172,9 @@ export default function GlucoseInsulinPage() {
             <div className="flex justify-between items-center mb-8 relative">
               <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-800 -translate-y-1/2 -z-10"></div>
               {[
-                { num: 1, icon: Smartphone, label: 'Enter Reading' },
-                { num: 2, icon: Clock, label: 'Add Context' },
-                { num: 3, icon: Lightbulb, label: 'Get Insights' }
+                { num: 1, icon: Smartphone, label: t('glucoseInsulin.enterReading') },
+                { num: 2, icon: Clock, label: t('glucoseInsulin.addContext') },
+                { num: 3, icon: Lightbulb, label: t('glucoseInsulin.getInsights') }
               ].map(({ num, icon: StepIcon, label }) => (
                 <div key={num} className="flex flex-col items-center relative">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
@@ -197,8 +197,8 @@ export default function GlucoseInsulinPage() {
                     <Smartphone className="w-6 h-6 text-emerald-400" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-gray-300">What's your glucose reading?</h2>
-                    <p className="text-gray-500">Enter your current blood glucose level</p>
+                    <h2 className="text-xl font-bold text-gray-300">{t('glucoseInsulin.glucoseReadingPrompt')}</h2>
+                    <p className="text-gray-500">{t('glucoseInsulin.enterCurrentGlucose')}</p>
                   </div>
                 </div>
 
@@ -239,7 +239,7 @@ export default function GlucoseInsulinPage() {
                     glucose ? 'bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white' : 'bg-gray-800 text-gray-500 cursor-not-allowed'
                   }`}
                 >
-                  Continue to Context
+                  {t('glucoseInsulin.continueToContext')}
                 </button>
               </div>
             )}
@@ -252,18 +252,18 @@ export default function GlucoseInsulinPage() {
                     <Clock className="w-6 h-6 text-cyan-400" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-gray-300">When was this reading taken?</h2>
-                    <p className="text-gray-500">Context helps understand patterns (optional)</p>
+                    <h2 className="text-xl font-bold text-gray-300">{t('glucoseInsulin.whenReadingTaken')}</h2>
+                    <p className="text-gray-500">{t('glucoseInsulin.contextHelpsPatterns')}</p>
                   </div>
                 </div>
 
                 {/* Context Options */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
                   {[
-                    { id: 'fasting', label: 'Fasting', icon: Sunrise, desc: 'Before breakfast' },
-                    { id: 'beforeMeal', label: 'Before Meal', icon: UtensilsCrossed, desc: '0-15 min before eating' },
-                    { id: 'afterMeal', label: 'After Meal', icon: Timer, desc: '1-2 hours after eating' },
-                    { id: 'random', label: 'Random', icon: Target, desc: 'Any other time' }
+                    { id: 'fasting', label: t('glucoseInsulin.fasting'), icon: Sunrise, desc: t('glucoseInsulin.beforeBreakfast') },
+                    { id: 'beforeMeal', label: t('glucoseInsulin.beforeMeal'), icon: UtensilsCrossed, desc: t('glucoseInsulin.beforeEating') },
+                    { id: 'afterMeal', label: t('glucoseInsulin.afterMeal'), icon: Timer, desc: t('glucoseInsulin.afterEating') },
+                    { id: 'random', label: t('glucoseInsulin.random'), icon: Target, desc: t('glucoseInsulin.anyOtherTime') }
                   ].map((option) => {
                     const IconComponent = option.icon;
                     return (
@@ -295,7 +295,7 @@ export default function GlucoseInsulinPage() {
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <Flame className="w-5 h-5 text-purple-400" />
-                        <span className="font-medium text-gray-300">Did you take insulin?</span>
+                        <span className="font-medium text-gray-300">{t('glucoseInsulin.didTakeInsulin')}</span>
                       </div>
                       <button
                         onClick={() => setInsulinTaken(!insulinTaken)}
@@ -312,7 +312,7 @@ export default function GlucoseInsulinPage() {
                           type="number"
                           value={insulinDose}
                           onChange={(e) => setInsulinDose(e.target.value)}
-                          placeholder="Dose in units"
+                          placeholder={t('glucoseInsulin.doseInUnits')}
                           className="flex-1 bg-gray-800 border border-gray-700 rounded-lg p-2 text-gray-300"
                         />
                         <span className="text-gray-400">units</span>
@@ -325,7 +325,7 @@ export default function GlucoseInsulinPage() {
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <Cake className="w-5 h-5 text-amber-400" />
-                        <span className="font-medium text-gray-300">Did you eat food?</span>
+                        <span className="font-medium text-gray-300">{t('glucoseInsulin.didEatFood')}</span>
                       </div>
                       <button
                         onClick={() => setCarbsEaten(!carbsEaten)}
@@ -342,7 +342,7 @@ export default function GlucoseInsulinPage() {
                           type="number"
                           value={carbsAmount}
                           onChange={(e) => setCarbsAmount(e.target.value)}
-                          placeholder="Carbohydrates in grams"
+                          placeholder={t('glucoseInsulin.carbsInGrams')}
                           className="flex-1 bg-gray-800 border border-gray-700 rounded-lg p-2 text-gray-300"
                         />
                         <span className="text-gray-400">grams</span>
@@ -352,11 +352,11 @@ export default function GlucoseInsulinPage() {
 
                   {/* Notes */}
                   <div>
-                    <label className="block text-sm text-gray-400 mb-2">Additional Notes (optional)</label>
+                    <label className="block text-sm text-gray-400 mb-2">{t('glucoseInsulin.additionalNotes')}</label>
                     <textarea
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Exercise, stress, medication changes, etc."
+                      placeholder={t('glucoseInsulin.exerciseStressMedication')}
                       className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 h-24 text-gray-300"
                     />
                   </div>
@@ -368,13 +368,13 @@ export default function GlucoseInsulinPage() {
                     onClick={() => setStep(1)}
                     className="flex-1 py-3 bg-gray-800 hover:bg-gray-700 rounded-xl transition text-gray-300"
                   >
-                    Back
+                    {t('glucoseInsulin.back')}
                   </button>
                   <button
                     onClick={() => setStep(3)}
                     className="flex-1 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 rounded-xl transition text-white"
                   >
-                    See Insights
+                    {t('glucoseInsulin.seeInsights')}
                   </button>
                 </div>
               </div>
@@ -388,8 +388,8 @@ export default function GlucoseInsulinPage() {
                     <Lightbulb className="w-6 h-6 text-purple-400" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-gray-300">Your Glucose Insights</h2>
-                    <p className="text-gray-500">Personalized recommendations based on your reading</p>
+                    <h2 className="text-xl font-bold text-gray-300">{t('glucoseInsulin.yourGlucoseInsights')}</h2>
+                    <p className="text-gray-500">{t('glucoseInsulin.personalizedRecommendations')}</p>
                   </div>
                 </div>
 
@@ -415,7 +415,7 @@ export default function GlucoseInsulinPage() {
                     <div className="flex items-start gap-3">
                       <CheckCircle className="w-5 h-5 text-emerald-400 mt-0.5" />
                       <div>
-                        <h4 className="font-medium text-gray-300">Recommended Action</h4>
+                        <h4 className="font-medium text-gray-300">{t('glucoseInsulin.recommendedAction')}</h4>
                         <p className="text-sm text-gray-400 mt-1">
                           {getInsights()?.message || 'Continue monitoring regularly'}
                         </p>
@@ -428,8 +428,8 @@ export default function GlucoseInsulinPage() {
                     <div className="p-4 rounded-xl bg-cyan-900/20 border border-cyan-800/30">
                       <div className="flex justify-between items-center">
                         <div>
-                          <h4 className="font-medium text-gray-300">Insulin Recorded</h4>
-                          <p className="text-sm text-gray-400">{insulinDose} units taken</p>
+                          <h4 className="font-medium text-gray-300">{t('glucoseInsulin.insulinRecorded')}</h4>
+                          <p className="text-sm text-gray-400">{insulinDose} {t('glucoseInsulin.unitsTaken')}</p>
                         </div>
                         <div className="text-right">
                           <div className="text-2xl font-bold text-cyan-400">{insulinDose}</div>
@@ -444,8 +444,8 @@ export default function GlucoseInsulinPage() {
                     <div className="p-4 rounded-xl bg-amber-900/20 border border-amber-800/30">
                       <div className="flex justify-between items-center">
                         <div>
-                          <h4 className="font-medium text-gray-300">Carbs Recorded</h4>
-                          <p className="text-sm text-gray-400">{carbsAmount}g carbohydrates</p>
+                          <h4 className="font-medium text-gray-300">{t('glucoseInsulin.carbsRecorded')}</h4>
+                          <p className="text-sm text-gray-400">{carbsAmount}{t('glucoseInsulin.gramsCarbs')}</p>
                         </div>
                         <div className="text-right">
                           <div className="text-2xl font-bold text-amber-400">{carbsAmount}</div>
@@ -457,19 +457,19 @@ export default function GlucoseInsulinPage() {
 
                   {/* Next Steps */}
                   <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700">
-                    <h4 className="font-medium text-gray-300 mb-3">Next Steps</h4>
+                    <h4 className="font-medium text-gray-300 mb-3">{t('glucoseInsulin.nextSteps')}</h4>
                     <ul className="space-y-2">
                       <li className="flex items-center gap-2 text-sm text-gray-400">
                         <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                        Monitor again in 2 hours
+                        {t('glucoseInsulin.monitorInHours')}
                       </li>
                       <li className="flex items-center gap-2 text-sm text-gray-400">
                         <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-                        Log your next meal for better insights
+                        {t('glucoseInsulin.logNextMeal')}
                       </li>
                       <li className="flex items-center gap-2 text-sm text-gray-400">
                         <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                        Check patterns in Dashboard
+                        {t('glucoseInsulin.checkPatterns')}
                       </li>
                     </ul>
                   </div>
@@ -482,14 +482,14 @@ export default function GlucoseInsulinPage() {
                     disabled={createHealthDataMutation.isPending}
                     className="w-full py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 rounded-xl font-medium transition text-white disabled:opacity-50"
                   >
-                    {createHealthDataMutation.isPending ? 'Saving...' : 'Save Reading & Continue'}
+                    {createHealthDataMutation.isPending ? t('common.loading') : t('glucoseInsulin.saveAndContinue')}
                   </button>
                   <div className="flex gap-3">
                     <button
                       onClick={() => setStep(2)}
                       className="flex-1 py-3 bg-gray-800 hover:bg-gray-700 rounded-xl transition text-gray-300"
                     >
-                      Edit Context
+                      {t('glucoseInsulin.editContext')}
                     </button>
                     <button
                       onClick={() => {
@@ -504,7 +504,7 @@ export default function GlucoseInsulinPage() {
                       }}
                       className="flex-1 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 rounded-xl transition text-white"
                     >
-                      Log Another
+                      {t('glucoseInsulin.logAnother')}
                     </button>
                   </div>
                 </div>
@@ -513,7 +513,7 @@ export default function GlucoseInsulinPage() {
 
             {/* Recent Logs Preview */}
             <div className="mt-8 glass-card rounded-2xl p-6 border border-white/10">
-              <h3 className="text-lg font-semibold text-gray-300 mb-4">Recent Readings</h3>
+              <h3 className="text-lg font-semibold text-gray-300 mb-4">{t('glucoseInsulin.recentReadings')}</h3>
               {recentReadings.length > 0 ? (
                 <div className="space-y-3">
                   {recentReadings.map((reading, index) => (
@@ -548,8 +548,8 @@ export default function GlucoseInsulinPage() {
               ) : (
                 <div className="text-center py-12">
                   <BarChart3 className="w-12 h-12 mx-auto mb-3 text-gray-600 animate-pulse" />
-                  <p className="text-gray-400 font-medium">No readings yet</p>
-                  <p className="text-sm text-gray-500 mt-1">Your recent glucose readings will appear here</p>
+                  <p className="text-gray-400 font-medium">{t('glucoseInsulin.noReadings')}</p>
+                  <p className="text-sm text-gray-500 mt-1">{t('glucoseInsulin.readingsWillAppear')}</p>
                 </div>
               )}
             </div>

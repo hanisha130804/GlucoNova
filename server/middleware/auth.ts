@@ -14,7 +14,8 @@ export interface AuthRequest extends Request {
 
 export function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
     
     if (!token) {
       return res.status(401).json({ message: 'Authentication required' });
@@ -85,7 +86,8 @@ export function approvalMiddleware(req: AuthRequest, res: Response, next: NextFu
 // Optional auth middleware - allows unauthenticated requests but validates token if provided
 export function optionalAuthMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
     
     if (token) {
       try {

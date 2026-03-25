@@ -76,7 +76,7 @@ export default function MealLoggingPage() {
     },
   });
 
-  const { data: mealHistory } = useQuery<{ meals: any[] }>({
+  const { data: mealHistory } = useQuery<{ data: any[] }>({
     queryKey: ['/api/meals'],
   });
 
@@ -905,7 +905,7 @@ export default function MealLoggingPage() {
                 </div>
 
                 <div className="space-y-3">
-                  {mealHistory?.meals?.slice(0, 5).map((meal: any) => (
+                  {mealHistory?.data?.slice(0, 5).map((meal: any) => (
                     <div
                       key={meal._id}
                       className="p-4 rounded-lg bg-secondary/50 space-y-2"

@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,6 +56,7 @@ export function MedicationPanel({
   currentMedications?: PatientMedication[];
   isDoctorMode?: boolean;
 }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<MedicationSearchResult[]>([]);
@@ -91,7 +93,7 @@ export function MedicationPanel({
       setSearchResults(results);
     } catch (err: any) {
       toast({
-        title: 'Search Error',
+        title: t('medications.messages.searchError'),
         description: err.message,
         variant: 'destructive',
       });
@@ -115,8 +117,8 @@ export function MedicationPanel({
   async function handleAddMedication(med: MedicationSearchResult) {
     if (!onAddMedication) {
       toast({
-        title: 'Info',
-        description: 'Medication panel not fully configured',
+        title: t('medications.messages.info'),
+        description: t('medications.messages.notConfigured'),
       });
       return;
     }
@@ -124,15 +126,15 @@ export function MedicationPanel({
     try {
       await onAddMedication(med);
       toast({
-        title: 'Success',
-        description: `${med.name} added to your medications`,
+        title: t('medications.messages.success'),
+        description: `${med.name} ${t('medications.messages.addedToMedications')}`,
       });
       setShowDetails(null);
       setSearchResults([]);
       setSearchQuery('');
     } catch (err: any) {
       toast({
-        title: 'Error',
+        title: t('medications.messages.error'),
         description: err.message,
         variant: 'destructive',
       });
@@ -148,24 +150,24 @@ export function MedicationPanel({
         onClick={() => setIsOpen(!isOpen)}
       >
         <Pill className="w-4 h-4" />
-        <span>Medications</span>
+        <span>{t('medications.title')}</span>
       </Button>
 
       {/* Search Panel */}
       {isOpen && (
         <Card className="mt-2 w-full max-w-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Medication Search</CardTitle>
-            <CardDescription>Find and manage your medications</CardDescription>
+            <CardTitle className="text-base">{t('medications.search.title')}</CardTitle>
+            <CardDescription>{t('medications.search.description')}</CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-4">
             {/* Search Input */}
             <div className="space-y-2">
-              <Label className="text-sm">Search Medication</Label>
+              <Label className="text-sm">{t('medications.search.searchMedication')}</Label>
               <div className="flex gap-2">
                 <Input
-                  placeholder="Search by name..."
+                  placeholder={t('medications.search.searchByName')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={handleSearchKeyDown}
@@ -185,7 +187,7 @@ export function MedicationPanel({
             {/* Current Medications */}
             {currentMedications.length > 0 && (
               <div className="space-y-2">
-                <Label className="text-sm">Current Medications</Label>
+                <Label className="text-sm">{t('medications.current.title')}</Label>
                 <div className="space-y-2 max-h-32 overflow-y-auto">
                   {currentMedications.map((med) => (
                     <div
@@ -210,7 +212,7 @@ export function MedicationPanel({
             {/* Search Results */}
             {searchResults.length > 0 && (
               <div className="space-y-2">
-                <Label className="text-sm">Results</Label>
+                <Label className="text-sm">{t('medications.search.results')}</Label>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {searchResults.map((result) => (
                     <button
@@ -240,7 +242,7 @@ export function MedicationPanel({
 
             {searchQuery && searchResults.length === 0 && !loading && (
               <div className="text-center py-6 text-sm text-muted-foreground">
-                No medications found. Try a different search term.
+                {t('medications.search.noResults')}
               </div>
             )}
           </CardContent>
@@ -261,11 +263,11 @@ export function MedicationPanel({
             <div className="space-y-4 py-4">
               {/* Class and Branded Names */}
               <div>
-                <p className="text-xs font-semibold text-muted-foreground mb-2">CLASS</p>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">{t('medications.details.class')}</p>
                 <p className="text-sm">{showDetails.class}</p>
                 {((showDetails.brand_names && showDetails.brand_names.length > 0) || (showDetails.branded && showDetails.branded.length > 0)) && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    Brands: {(showDetails.brand_names || showDetails.branded || []).join(', ')}
+                    {t('medications.details.brands')} {(showDetails.brand_names || showDetails.branded || []).join(', ')}
                   </p>
                 )}
               </div>
@@ -273,7 +275,7 @@ export function MedicationPanel({
               {/* Notes */}
               <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800">
                 <p className="text-xs font-semibold text-blue-900 dark:text-blue-300 mb-1">
-                  ℹ️ How to Use
+                  {t('medications.details.howToUse')}
                 </p>
                 <p className="text-xs text-blue-800 dark:text-blue-400">{showDetails.notes}</p>
               </div>
@@ -288,7 +290,7 @@ export function MedicationPanel({
                     className="flex items-center gap-2 text-sm font-semibold text-amber-900 dark:text-amber-300 w-full p-2 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20"
                   >
                     <AlertCircle className="w-4 h-4" />
-                    Safety Information
+                    {t('medications.details.safetyInformation')}
                     <ChevronDown
                       className={`w-4 h-4 ml-auto transition-transform ${
                         expandedSafety === 'safety' ? 'rotate-180' : ''
@@ -315,7 +317,7 @@ export function MedicationPanel({
                     className="flex items-center gap-2 text-sm font-semibold text-red-900 dark:text-red-300 w-full p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
                   >
                     <AlertCircle className="w-4 h-4" />
-                    Drug Interactions
+                    {t('medications.details.drugInteractions')}
                     <ChevronDown
                       className={`w-4 h-4 ml-auto transition-transform ${
                         expandedSafety === 'interactions' ? 'rotate-180' : ''
@@ -335,7 +337,7 @@ export function MedicationPanel({
               {/* Similar Medications */}
               {showDetails.similar && showDetails.similar.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground">SIMILAR ALTERNATIVES</p>
+                  <p className="text-xs font-semibold text-muted-foreground">{t('medications.details.similarAlternatives')}</p>
                   <ul className="space-y-1 text-xs">
                     {showDetails.similar.map((sim) => (
                       <li key={sim.id} className="text-muted-foreground">
@@ -349,11 +351,11 @@ export function MedicationPanel({
 
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowDetails(null)}>
-                Close
+                {t('medications.details.close')}
               </Button>
               <Button onClick={() => handleAddMedication(showDetails)}>
                 <Plus className="w-4 h-4 mr-2" />
-                Add to My Medications
+                {t('medications.details.addToMedications')}
               </Button>
             </DialogFooter>
           </DialogContent>

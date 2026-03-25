@@ -315,6 +315,62 @@
       "noData": "No data",
       "units": "units",
       "confidence": "conf."
+    },
+    "demoMode": "Demo Mode",
+    "currentStatus": "Current Status",
+    "high": "High",
+    "timeInRange": "Time in Range",
+    "status": {
+      "stable": "stable",
+      "variable": "variable",
+      "goodWork": "Keep up the good work!",
+      "needsAttention": "Needs attention"
+    },
+    "patternDetected": "Pattern Detected",
+    "quickActions": {
+      "glucose": {
+        "label": "Log Glucose",
+        "desc": "Track reading"
+      },
+      "meal": {
+        "label": "Log Meal",
+        "desc": "Track food"
+      },
+      "reports": {
+        "label": "View Reports",
+        "desc": "Medical docs"
+      }
+    },
+    "trends": {
+      "period": "Past 24 hours",
+      "viewDetails": "View Details"
+    },
+    "metrics": {
+      "carbsToday": {
+        "label": "Carbs Today",
+        "vsYesterday": "vs yesterday"
+      },
+      "activeInsulin": {
+        "label": "Active Insulin",
+        "lastDose": "Last dose"
+      },
+      "activityLevel": {
+        "label": "Activity Level",
+        "startTracking": "Start tracking"
+      }
+    },
+    "profile": {
+      "clickToUpdate": "Click to update"
+    },
+    "prediction": {
+      "suggestion": "Personalized dose suggestion",
+      "calculateDose": "Calculate Dose"
+    },
+    "voiceMealLog": {
+      "title": "Voice Meal Log",
+      "tracking": "Hands-free food tracking",
+      "tapToSpeak": "Tap to Speak",
+      "instantly": "Log meals instantly"
     }
   },
   "glucose": {
@@ -353,7 +409,51 @@
       "title": "Glucose Trends",
       "currentStatus": "Current Status",
       "noData": "No glucose data available for the selected period",
-      "loadError": "Failed to load glucose data"
+      "loadError": "Failed to load glucose data",
+      "noDataYet": "No Data Yet",
+      "startLogging": "Start logging your glucose to see trends",
+      "low": "Low",
+      "high": "High",
+      "target": "Target",
+      "glucoseUnit": "mg/dL",
+      "logGlucoseReading": "Log Glucose Reading",
+      "dateLabel": "Date",
+      "timeLabel": "Time",
+      "iTookInsulin": "I took insulin",
+      "iAteFood": "I ate food",
+      "saveGlucoseReading": "Save Glucose Reading",
+      "glucosePlaceholder": "Enter glucose reading (40-400)",
+      "insulinTypePlaceholder": "Select insulin type",
+      "doseLabel": "Dose (units)",
+      "mealTypePlaceholder": "Select meal type",
+      "carbsLabel": "Carbs (grams)",
+      "foodNotesLabel": "Food Notes (optional)",
+      "additionalNotesLabel": "Additional Notes (optional)",
+      "validRange": "Valid range: 40-400 mg/dL",
+      "missedEntry": "Missed an entry? You can add readings for past dates and times.",
+      "insulinOnlyIfTaken": "Enter insulin only if it was actually taken and prescribed by your doctor.",
+      "carbLoggingHelps": "Carbohydrate logging helps explain post-meal glucose changes.",
+      "exerciseStressContext": "Any additional context (exercise, stress, etc.)",
+      "insulinTypeLabel": "Insulin Type",
+      "dosePlaceholder": "Enter dose",
+      "mealTypeLabel": "Meal Type",
+      "carbsPlaceholder": "Enter carbs",
+      "foodNotesPlaceholder": "What did you eat?",
+      "savingReading": "Saving Reading...",
+      "glucose": "Glucose Level (mg/dL)",
+      "insulinTypes": {
+        "rapidActing": "Rapid-acting (Lispro/Aspart)",
+        "shortActing": "Short-acting",
+        "longActing": "Long-acting (Basal)"
+      },
+      "mealTypes": {
+        "breakfast": "Breakfast",
+        "lunch": "Lunch",
+        "dinner": "Dinner",
+        "snack": "Snack",
+        "beforeMeal": "Before Meal",
+        "afterMeal": "After Meal"
+      }
     }
   },
   "insulin": {
@@ -397,6 +497,42 @@
       "calculateButton": "Calculate",
       "units": "units",
       "confidence": "conf."
+    },
+    "calculator": {
+      "title": "Insulin Prediction Calculator",
+      "description": "Safe, explainable insulin dosing based on your glucose, carbs, and insulin parameters",
+      "currentGlucose": "Current Glucose (mg/dL)",
+      "carbsGrams": "Carbs (grams)",
+      "icr": "ICR (Units per gram carbs)",
+      "icrTooltip": "Insulin to Carb Ratio (ICR) tells you how much insulin to take per gram of carbs. For example, 1:10 means 1 unit of insulin per 10g of carbs.",
+      "isf": "ISF (mg/dL per unit)",
+      "isfTooltip": "Insulin Sensitivity Factor (ISF) tells you how much 1 unit of insulin will lower your blood glucose. For example, an ISF of 40 means 1 unit lowers glucose by 40 mg/dL.",
+      "correctionTarget": "Correction Target (mg/dL)",
+      "insulinType": "Insulin Type",
+      "calculating": "Calculating...",
+      "calculateDose": "Calculate Insulin Dose",
+      "recommendedDose": "Recommended Dose",
+      "doseBreakdown": "Dose Breakdown",
+      "carbCoverage": "Carb Coverage",
+      "correction": "Correction",
+      "howCalculated": "How was this calculated?",
+      "safetyAlert": "Safety Alert",
+      "saveAsPlannedDose": "Save as Planned Dose",
+      "confirmDose": "Confirm Insulin Dose",
+      "reviewDetails": "Please review the details before applying this insulin dose",
+      "currentGlucoseLabel": "Current Glucose",
+      "carbsLabel": "Carbs",
+      "carbUnits": "Carb Units",
+      "safetyReminder": "Safety Reminder",
+      "safetyReminderText": "Always check your glucose before administering insulin. If you have any doubts, consult your healthcare provider.",
+      "recording": "Recording...",
+      "applyDose": "Apply Dose"
+    },
+    "types": {
+      "rapid": "Rapid-Acting",
+      "short": "Short-Acting",
+      "intermediate": "Intermediate-Acting",
+      "long": "Long-Acting"
     }
   },
   "food": {
@@ -428,6 +564,12 @@
     "analyze": "Analyze",
     "mealName": "Meal Name",
     "mealNamePlaceholder": "e.g., Breakfast, Chicken Salad",
+    "breakfast": "Breakfast",
+    "lunch": "Lunch",
+    "dinner": "Dinner",
+    "snack": "Snack",
+    "beforeMeal": "Before Meal",
+    "afterMeal": "After Meal",
     "carbohydrates": "Carbohydrates (grams)",
     "carbsPlaceholder": "Enter carbs",
     "protein": "Protein (grams, optional)",
@@ -485,7 +627,37 @@
       "speechNotSupported": "Not Supported",
       "speechNotSupportedDesc": "Speech Recognition is not supported in your browser",
       "speechError": "Speech recognition error: {{error}}"
+    },
+    "medicalFeedback": {
+      "title": "🩺 Personalized Medical Feedback",
+      "subtitle": "Based on your {{type}} diabetes profile",
+      "disclaimer": "These are personalized insights for educational purposes. Always consult your healthcare provider.",
+      "type2HighCarb": "For Type 2 diabetes, this high-carb meal may cause a prolonged glucose spike. Consider reducing portion size.",
+      "type2ModerateCarb": "This moderate-carb meal should be manageable, but monitor your post-meal glucose levels.",
+      "type1Bolus": "Consider bolus insulin dosing for {{carbs}}g carbs. Consult your insulin-to-carb ratio.",
+      "prediabetic": "As pre-diabetic, focus on portion control and pair carbs with protein/fiber to reduce glucose impact.",
+      "riceDelayed": "Your past records show delayed glucose normalization after rice-based meals. Monitor 2-3 hours post-meal.",
+      "fiberBenefit": "High fiber content ({{fiber}}g) may partially offset the glucose rise from carbohydrates.",
+      "proteinBalance": "Good protein content will help slow carbohydrate absorption and reduce glucose spikes.",
+      "monitorPostMeal": "Monitor glucose 90-120 minutes post-meal for this moderate-to-high impact food.",
+      "lowTimeInRange": "Your recent time-in-range is below target. Consider smaller portions or lower-GI alternatives."
     }
+  },
+  "aiFood": {
+    "title": "AI Food Log",
+    "subtitle": "AI-powered meal analysis",
+    "alerts": {
+      "highSugar": "⚠️ HIGH SUGAR ALERT: {{food}} has very high glycemic impact (GI: {{gi}})! May cause rapid blood sugar spikes.",
+      "moderateSugar": "⚠️ MODERATE WARNING: {{food}} may cause moderate blood sugar rise. Consider portion control.",
+      "lowSugar": "✅ DIABETES-FRIENDLY: Good choice! {{food}} has low glycemic impact."
+    },
+    "header": {
+      "title": "Intelligent Nutrition & Carb Logging",
+      "subtitle": "AI-powered meal analysis with Indian food understanding"
+    },
+    "disclaimer": "Educational Purpose Only: Nutrition values and health impact are estimates and may not be fully accurate. Always follow your doctor or dietitian's advice.",
+    "newMeal": "Log a New Meal",
+    "mealTime": "Meal Time"
   },
   "medical": {
     "glucose": "Glucose",
@@ -511,6 +683,51 @@
     "correctionFactor": "Correction Factor",
     "icr": "ICR (Insulin:Carb)",
     "isf": "ISF (Insulin Sensitivity Factor)"
+  },
+  "glucoseInsulin": {
+    "logGlucoseReading": "Log Glucose Reading",
+    "quickLogging": "Quick and easy logging for better management",
+    "enterReading": "Enter Reading",
+    "addContext": "Add Context",
+    "getInsights": "Get Insights",
+    "glucoseReadingPrompt": "What's your glucose reading?",
+    "enterCurrentGlucose": "Enter your current blood glucose level",
+    "continueToContext": "Continue to Context",
+    "whenReadingTaken": "When was this reading taken?",
+    "contextHelpsPatterns": "Context helps understand patterns (optional)",
+    "fasting": "Fasting",
+    "beforeBreakfast": "Before breakfast",
+    "beforeMeal": "Before Meal",
+    "beforeEating": "0-15 min before eating",
+    "afterMeal": "After Meal",
+    "afterEating": "1-2 hours after eating",
+    "random": "Random",
+    "anyOtherTime": "Any other time",
+    "didTakeInsulin": "Did you take insulin?",
+    "doseInUnits": "Dose in units",
+    "didEatFood": "Did you eat food?",
+    "carbsInGrams": "Carbohydrates in grams",
+    "additionalNotes": "Additional Notes (optional)",
+    "exerciseStressMedication": "Exercise, stress, medication changes, etc.",
+    "back": "Back",
+    "seeInsights": "See Insights",
+    "yourGlucoseInsights": "Your Glucose Insights",
+    "personalizedRecommendations": "Personalized recommendations based on your reading",
+    "recommendedAction": "Recommended Action",
+    "insulinRecorded": "Insulin Recorded",
+    "unitsTaken": "units taken",
+    "carbsRecorded": "Carbs Recorded",
+    "gramsCarbs": "g carbohydrates",
+    "nextSteps": "Next Steps",
+    "monitorInHours": "Monitor again in 2 hours",
+    "logNextMeal": "Log your next meal for better insights",
+    "checkPatterns": "Check patterns in Dashboard",
+    "saveAndContinue": "Save Reading & Continue",
+    "editContext": "Edit Context",
+    "logAnother": "Log Another",
+    "recentReadings": "Recent Readings",
+    "noReadings": "No readings yet",
+    "readingsWillAppear": "Your recent glucose readings will appear here"
   },
   "settings": {
     "title": "Settings",
@@ -607,6 +824,112 @@
     "noHealthData": "No health data available",
     "selectPatient": "Select a patient to view their health data"
   },
+  "voiceAI": {
+    "title": "Voice AI Assistant",
+    "header": "Voice Assistant",
+    "subtitle": "Log meals and get health insights using voice commands",
+    "foodLogging": {
+      "title": "Food Logging",
+      "subtitle": "Tap the microphone to log your meal using voice",
+      "buttonText": "Start Recording"
+    },
+    "transcribedText": {
+      "title": "Transcribed Text"
+    },
+    "aiAnalysis": {
+      "title": "AI Nutritional Analysis",
+      "detectedIngredients": "Detected Ingredients:",
+      "macros": "Macronutrients:",
+      "totalCalories": "Total Calories:",
+      "bloodSugarImpact": "Blood Sugar Impact:",
+      "estimatedGlycemicLoad": "Estimated Glycemic Load:",
+      "recommendation": "Recommendation:",
+      "advisory": "Advisory:",
+      "personalizedInsights": "Personalized Insights:",
+      "diabetesType": "Diabetes Type:",
+      "typicalInsulin": "Typical Insulin:",
+      "carbInfo": "This meal contains {{carbs}}g of carbs. Consider your insulin-to-carb ratio when dosing."
+    },
+    "readyToLog": {
+      "title": "Ready to Log"
+    },
+    "logging": {
+      "logging": "Logging...", 
+      "logMeal": "Log Meal"
+    },
+    "voiceTips": {
+      "title": "Voice Tips",
+      "trySaying": "Try saying:",
+      "features": "Features:",
+      "example1": "I ate chicken with rice and vegetables",
+      "example2": "Had a banana and yogurt for breakfast",
+      "example3": "Just had pasta with salmon, about 200 grams",
+      "example4": "Consumed pizza and salad for lunch",
+      "feature1": "✓ Voice-activated logging",
+      "feature2": "✓ Complete nutritional analysis",
+      "feature3": "✓ Blood sugar impact prediction",
+      "feature4": "✓ Personalized diabetes insights",
+      "feature5": "✓ Automatic macronutrient detection",
+      "feature6": "✓ Hands-free operation"
+    },
+    "medications": {
+      "title": "Medications",
+      "search": {
+        "title": "Medication Search",
+        "description": "Find and manage your medications",
+        "searchMedication": "Search Medication",
+        "searchByName": "Search by name...",
+        "results": "Results",
+        "noResults": "No medications found. Try a different search term."
+      },
+      "current": {
+        "title": "Current Medications"
+      },
+      "details": {
+        "class": "CLASS",
+        "brands": "Brands:",
+        "howToUse": "ℹ️ How to Use",
+        "safetyInformation": "Safety Information",
+        "drugInteractions": "Drug Interactions",
+        "similarAlternatives": "SIMILAR ALTERNATIVES",
+        "close": "Close",
+        "addToMedications": "Add to My Medications"
+      },
+      "messages": {
+        "searchError": "Search Error",
+        "info": "Info",
+        "notConfigured": "Medication panel not fully configured",
+        "success": "Success",
+        "addedToMedications": "added to your medications",
+        "error": "Error"
+      }
+    },
+    "placeholders": {
+      "enterPassword": "Enter your password",
+      "enterGlucoseLevel": "Enter glucose level",
+      "enterInsulinDose": "Enter insulin dose",
+      "enterCarbsConsumed": "Enter carbs consumed",
+      "selectActivityLevel": "Select activity level",
+      "addAdditionalNotes": "Add any additional notes...",
+      "typeMessage": "Type a message...",
+      "enterFullName": "Enter your full name",
+      "dailyUnits": "Daily units",
+      "listMedications": "List your current medications",
+      "enterCarbs": "Enter carbs",
+      "enterProtein": "Enter protein",
+      "enterFat": "Enter fat",
+      "enterCalories": "Enter calories",
+      "searchDiabetesMeds": "Search for diabetes medications..."
+    },
+    "info": {
+      "info": "Info",
+      "detectionFailed": "I couldn't detect meal information. Try saying something like \"I ate chicken with rice and vegetables\""
+    },
+    "success": {
+      "title": "Success",
+      "description": "Meal logged successfully via voice"
+    }
+  },
   "admin": {
     "title": "Admin Dashboard",
     "subtitle": "Manage user approvals and system settings",
@@ -629,6 +952,258 @@
       "actionFailed": "Action failed",
       "updateUserApprovalFailed": "Failed to update user approval"
     }
+  },
+  "onboarding": {
+    "stepTitle": "Onboarding - Step {{step}} of {{total}}",
+    "stepDescription": "Complete your profile setup to get personalized health insights",
+    "stepProgress": "Step {{step}} of {{total}}",
+    "skipForNow": "Skip for now",
+    "welcome": {
+      "title": "Welcome to GlucoNova",
+      "description": "Your AI-powered diabetes management platform. Let's take a quick tour of what you can do!",
+      "startTour": "Start Tour"
+    },
+    "features": {
+      "title": "Available Features",
+      "description": "Everything you need to manage your diabetes effectively",
+      "glucose": {
+        "title": "Glucose Monitoring",
+        "description": "Track your blood glucose levels with visual trends and insights"
+      },
+      "insulin": {
+        "title": "AI Insulin Prediction",
+        "description": "Get personalized insulin recommendations powered by AI"
+      },
+      "meal": {
+        "title": "Meal Tracking",
+        "description": "Log meals manually or use voice input for easy tracking"
+      },
+      "medication": {
+        "title": "Medication Management",
+        "description": "Keep track of your medications and schedules"
+      },
+      "doctor": {
+        "title": "Doctor Collaboration",
+        "description": "Share your data with your healthcare team securely"
+      },
+      "voice": {
+        "title": "Voice Assistant",
+        "description": "Log meals hands-free using voice commands"
+      },
+      "continueSetup": "Continue to Setup"
+    },
+    "upload": {
+      "title": "Upload Health Records",
+      "description": "Upload a PDF of your health summary to auto-extract your information",
+      "dragDrop": "Drag and drop your PDF here",
+      "or": "or",
+      "browseFiles": "Browse Files",
+      "selectExisting": "Select Existing",
+      "useDemoData": "Use Demo Data",
+      "enterManually": "Enter Manually"
+    },
+    "existing": {
+      "title": "Select Existing Report",
+      "description": "Choose from your previously uploaded medical reports",
+      "back": "Back",
+      "loading": "Loading reports...",
+      "noReports": "No reports found",
+      "uploadToStart": "Upload a medical report to get started",
+      "uploadNew": "Upload New Report"
+    },
+    "confirm": {
+      "title": "Confirm Your Information",
+      "description": "Review and edit the extracted data",
+      "button": "Confirm & Continue"
+    },
+    "manual": {
+      "title": "Enter Your Details",
+      "description": "Fill in your health information manually",
+      "continue": "Continue"
+    },
+    "finish": {
+      "title": "All Set!",
+      "description": "Your account is ready. You can now access personalized health insights and AI-powered insulin predictions.",
+      "goToDashboard": "Go to Dashboard"
+    },
+    "form": {
+      "name": "Name",
+      "dob": "Date of Birth",
+      "weight": "Weight (kg)",
+      "height": "Height (cm)",
+      "a1c": "Last A1c (%)",
+      "insulin": "Typical Insulin (U)",
+      "medications": "Medications",
+      "targetRange": "Target Range"
+    },
+    "banner": {
+      "completeSetup": "Complete your setup",
+      "addHealthInfo": "Add your health information to get personalized AI-powered insights",
+      "resumeSetup": "Resume Setup"
+    },
+    "messages": {
+      "fileTooLarge": "File too large",
+      "fileSizeLimit": "Please upload a file smaller than 20MB",
+      "parsingFailed": "Parsing failed",
+      "parsingFailedDesc": "Could not extract data from document. Please enter details manually.",
+      "parsingSuccess": "Parsing successful",
+      "parsingSuccessDesc": "Extracted {{count}} field(s) from your report. Please review and confirm.",
+      "parsingPartial": "Partial extraction",
+      "parsingPartialDesc": "Some fields were extracted. Please review and fill in missing information.",
+      "invalidFileType": "Invalid file type",
+      "supportedFileTypes": "Please upload a PDF, JPEG, or PNG file",
+      "reportLoaded": "Report loaded",
+      "reportLoadedDesc": "Patient information has been populated. Please review and confirm.",
+      "loadPatientFailed": "Failed to load patient details from report",
+      "nameRequired": "Name required",
+      "nameRequiredDesc": "Please enter your name",
+      "dobRequired": "Date of birth required",
+      "dobRequiredDesc": "Please enter your date of birth",
+      "validWeightRequired": "Valid weight required",
+      "validWeightRequiredDesc": "Please enter a valid weight in kg",
+      "validHeightRequired": "Valid height required",
+      "validHeightRequiredDesc": "Please enter a valid height in cm",
+      "profileCreated": "Profile created successfully",
+      "healthDataSaved": "Your health data has been saved",
+      "saveProfileError": "Error saving profile",
+      "saveProfileErrorDesc": "Please try again or contact support"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your account preferences and settings",
+    "saveChanges": "Save Changes",
+    "saved": "Settings Saved",
+    "savedDesc": "Your settings have been updated successfully",
+    "accountSettings": "Account Settings",
+    "accountSettingsDesc": "Manage your personal information and account details",
+    "fullName": "Full Name",
+    "email": "Email Address",
+    "accountType": "Account Type",
+    "languageRegion": "Language & Region",
+    "languageRegionDesc": "Customize language and regional preferences",
+    "language": "Language",
+    "timezone": "Timezone",
+    "languageChanged": "Language Changed",
+    "languageChangedDesc": "Your language preference has been updated",
+    "notifications": "Notifications",
+    "notificationsDesc": "Manage how you receive updates and alerts",
+    "emailNotifications": "Email Notifications",
+    "emailNotificationsDesc": "Receive updates via email",
+    "pushNotifications": "Push Notifications",
+    "pushNotificationsDesc": "Receive push notifications on your device",
+    "glucoseAlerts": "Glucose Alerts",
+    "glucoseAlertsDesc": "Get notified when glucose is out of range",
+    "medicationReminders": "Medication Reminders",
+    "medicationRemindersDesc": "Receive reminders for medication and insulin",
+    "privacySecurity": "Privacy & Security",
+    "privacySecurityDesc": "Manage your password and security settings",
+    "changePassword": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm New Password",
+    "updatePassword": "Update Password",
+    "appearance": "Appearance",
+    "appearanceDesc": "Customize the look and feel of the app",
+    "darkMode": "Dark Mode",
+    "darkModeDesc": "Use dark theme throughout the app"
+  },
+  "reports": {
+    "title": "Reports & Documents",
+    "subtitle": "Reports & Medical Documents",
+    "description": "Upload, manage, and analyze your medical reports",
+    "myReports": "My Reports",
+    "uploadNew": "Upload New",
+    "trends": "Trends",
+    "loading": "Loading reports...",
+    "viewDetails": "View Details",
+    "noReportsYet": "No Reports Yet",
+    "uploadFirst": "Upload your first medical report to get started",
+    "uploadReport": "Upload Report",
+    "uploadMedicalReport": "Upload Medical Report",
+    "goToDocuments": "Go to Documents & OCR page to upload and analyze your reports",
+    "goToDocumentsPage": "Go to Documents Page",
+    "avgA1C": "Average A1C Trend",
+    "bmiTrend": "BMI Trend",
+    "totalReports": "Total Reports",
+    "basedOnReports": "Based on reports",
+    "uploaded": "Uploaded",
+    "trendAnalysisComingSoon": "Trend Analysis Coming Soon",
+    "uploadMoreForTrends": "Upload more reports to see trend analysis"
+  },
+  "documentsOCR": {
+    "title": "Documents & OCR",
+    "uploadDocument": "Upload Document",
+    "processing": "Processing...",
+    "pageTitle": "Medical Documents & OCR",
+    "pageDescription": "Upload medical reports for AI-powered data extraction and insulin prediction",
+    "aiExtractedData": "AI-Extracted Data from Latest Upload",
+    "reportType": "Report Type",
+    "date": "Date",
+    "aiConfidence": "AI Confidence",
+    "extractedMedicalValues": "Extracted Medical Values",
+    "aiInsightsAndPredictions": "AI Insights & Predictions",
+    "aiInsulinPrediction": "AI Insulin Prediction Based on Extracted Data",
+    "basedOnExtractedData": "Based on extracted medical data, the AI recommends:",
+    "basalInsulin": "Basal insulin (daily)",
+    "insulinToCarbRatio": "Insulin-to-carb ratio",
+    "units": "units",
+    "consultWarning": "⚠️ This is an AI prediction based on your uploaded medical report. Please consult your healthcare provider before making changes.",
+    "uploadedDocuments": "Uploaded Documents",
+    "noDocumentsYet": "No documents uploaded yet",
+    "uploadFirstReport": "Upload your first medical report to get started with AI analysis",
+    "processed": "Processed",
+    "view": "View",
+    "uploadingDocument": "Uploading document...",
+    "aiAnalyzing": "AI is analyzing your medical report",
+    "uploadSuccess": "Document processed successfully!",
+    "aiExtracted": "AI extracted {{count}} medical data points from your report",
+    "uploadFailed": "Upload failed",
+    "uploadFailedDescription": "Failed to process document",
+    "authRequired": "Authentication required. Please log in.",
+    "medicalReport": "Medical Report",
+    "patientName": "Patient Name",
+    "dateOfBirth": "Date of Birth",
+    "weight": "Weight",
+    "height": "Height",
+    "hbA1c": "HbA1c",
+    "medications": "Medications",
+    "insulinDose": "Insulin Dose",
+    "targetRange": "Target Range",
+    "excellentControl": "HbA1c ({{value}}%) shows excellent diabetes control",
+    "moderateControl": "HbA1c ({{value}}%) indicates moderate diabetes control",
+    "elevatedA1c": "HbA1c ({{value}}%) is elevated - consult with healthcare provider",
+    "weightRecorded": "Weight: {{value}} kg recorded",
+    "currentMedications": "Current medications: {{value}}",
+    "insulinNoted": "Insulin dose: {{value}} units noted",
+    "documentUploaded": "Document uploaded successfully",
+    "aiAnalysisComplete": "AI analysis completed - review extracted data above"
+  },
+  "careTeam": {
+    "title": "Care Team",
+    "yourCareTeam": "Your Care Team",
+    "description": "Connect with your doctors, send messages, and manage appointments",
+    "tabs": {
+      "doctors": "My Doctors",
+      "messages": "Messages",
+      "appointments": "Appointments"
+    },
+    "doctors": {
+      "title": "My Doctors",
+      "description": "View and manage your healthcare providers",
+      "viewButton": "View My Doctors"
+    },
+    "messages": {
+      "title": "Messages",
+      "description": "Send secure messages to your care team",
+      "goToButton": "Go to Messages"
+    },
+    "appointments": {
+      "title": "Appointments",
+      "description": "Schedule and manage your healthcare appointments",
+      "goToButton": "Go to Appointments"
+    },
+    "loading": "Loading care team information..."
   },
   "onboarding": {
     "stepTitle": "Onboarding - Step {{step}} of {{total}}",

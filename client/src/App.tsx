@@ -183,7 +183,11 @@ function Router() {
       <Route path="/dashboard">
         {(params) => (
           <Suspense fallback={<LoadingFallback />}>
-            <DashboardRouteHandler {...params} />
+            <ProtectedRoute 
+              component={() => <DashboardRouteHandler {...params} />}
+              allowedRoles={['patient', 'doctor', 'admin']}
+              {...params}
+            />
           </Suspense>
         )}
       </Route>

@@ -818,7 +818,7 @@ export default function OnboardingModal({ isOpen, onClose, onComplete, onSkip, i
           weight: parseFloat(healthData.weight),
           height: parseFloat(healthData.height),
           lastA1c: healthData.lastA1c ? parseFloat(healthData.lastA1c) : undefined,
-          medications: healthData.medications ? [healthData.medications] : undefined,
+          medications: healthData.medications ? [healthData.medications] : [], // Send as array for schema compatibility
           typicalInsulin: healthData.typicalInsulin ? parseFloat(healthData.typicalInsulin) : undefined,
           targetRange: healthData.targetRange || undefined,
           diabetesType: manualDiabetesType || undefined, // Save selected diabetes type
