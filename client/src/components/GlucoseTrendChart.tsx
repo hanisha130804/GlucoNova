@@ -14,7 +14,9 @@ function formatChartData(data: any[], range: TimeRange) {
 
   const now = new Date();
   const filtered = data.filter((item) => {
+    if (!item.timestamp) return false;
     const itemDate = new Date(item.timestamp);
+    if (isNaN(itemDate.getTime())) return false;
     const diffMs = now.getTime() - itemDate.getTime();
     const diffHours = diffMs / (1000 * 60 * 60);
     const diffDays = diffHours / 24;
@@ -35,11 +37,24 @@ function formatChartData(data: any[], range: TimeRange) {
 
   const sorted = [...filtered].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
-  return sorted.map((item) => ({
-    time: new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    glucose: item.glucose,
-    timestamp: new Date(item.timestamp),
-  }));
+  // Format labels based on range for better readability
+  return sorted.map((item) => {
+    const date = new Date(item.timestamp);
+    let timeLabel: string;
+    if (range === '7d' || range === '30d') {
+      // Show date + time for weekly/monthly views
+      timeLabel = date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + '\n' + 
+                 date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else {
+      // Show only time for 6h/24h views
+      timeLabel = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    return {
+      time: timeLabel,
+      glucose: item.glucose,
+      timestamp: date,
+    };
+  });
 }
 export default function GlucoseTrendChart({ compact = false, glucoseData }: { compact?: boolean, glucoseData?: any }) {
   const { t } = useTranslation();
@@ -107,20 +122,32 @@ export default function GlucoseTrendChart({ compact = false, glucoseData }: { co
   };
 
   const chartData = useMemo(() => {
-    const data = formatChartData((actualHealthData as any)?.data || [], selectedRange);
+    // Extract data array from response (handle both nested and flat formats)
+    const rawData = (actualHealthData as any)?.data || (Array.isArray(actualHealthData) ? actualHealthData : []);
+    const data = formatChartData(rawData, selectedRange);
     
     // Check if we have ANY real data from the API
-    const hasRealData = (actualHealthData as any)?.data && Array.isArray((actualHealthData as any).data) && (actualHealthData as any).data.length > 0;
+    const hasAnyRealData = rawData && Array.isArray(rawData) && rawData.length > 0;
     
-    // Only use sample data if there is NO real data at all
-    if (!hasRealData || data.length === 0) {
+    // Only use sample data if there is NO real data at all in the system
+    if (!hasAnyRealData) {
       const sampleData = generateSampleData(selectedRange);
-      console.log(`📊 Using sample data (no real data) for range ${selectedRange}:`, sampleData.length, 'readings');
       return sampleData;
     }
     
-    // Real data exists - use it
-    console.log(`✅ Displaying REAL data for range ${selectedRange}:`, data.length, 'readings');
+    // Real data exists but might have no data points for current range
+    if (data.length === 0) {
+      // Show a combined view: display available data but indicate range mismatch
+      const allData = formatChartData(rawData, '30d' as TimeRange);
+      if (allData.length > 0) {
+        // Show available data even if outside exact range
+        return allData;
+      }
+      // Fall back to sample data if no data at all
+      return generateSampleData(selectedRange);
+    }
+    
+    // Real data exists for this range - use it
     return data;
   }, [actualHealthData, selectedRange]);
 
@@ -197,9 +224,13 @@ export default function GlucoseTrendChart({ compact = false, glucoseData }: { co
               <XAxis 
                 dataKey="time" 
                 stroke="#94a3b8"
-                fontSize={12}
+                fontSize={11}
                 tickLine={false}
                 axisLine={{ stroke: '#334155' }}
+                interval={selectedRange === '7d' || selectedRange === '30d' ? 'preserveStartEnd' : 0}
+                angle={selectedRange === '7d' || selectedRange === '30d' ? -35 : 0}
+                textAnchor={selectedRange === '7d' || selectedRange === '30d' ? 'end' : 'middle'}
+                height={selectedRange === '7d' || selectedRange === '30d' ? 60 : 30}
               />
               <YAxis 
                 stroke="#94a3b8"

@@ -117,14 +117,31 @@ export default function GlucosePage() {
     // Create timestamp from date and time
     const timestamp = new Date(`${date}T${time}`).toISOString();
 
-    // Build payload - simplified structure
+    // Build payload - matching backend insertHealthDataSchema (objects for insulin/carbs)
     const payload: any = {
       glucose: glucoseValue,
       timestamp,
-      insulin: insulinTaken ? parseFloat(insulinDose) || 0 : 0,
-      carbs: foodConsumed ? parseFloat(carbs) || 0 : 0,
       notes: notes || undefined,
     };
+
+    // Add insulin as an object if the toggle is enabled
+    if (insulinTaken) {
+      payload.insulin = {
+        taken: true,
+        type: insulinType || undefined,
+        dose: parseFloat(insulinDose) || 0,
+      };
+    }
+
+    // Add carbs as an object if the toggle is enabled
+    if (foodConsumed) {
+      payload.carbs = {
+        consumed: true,
+        meal: mealType || undefined,
+        grams: parseFloat(carbs) || 0,
+        notes: foodNotes || undefined,
+      };
+    }
 
     console.log('Submitting payload:', payload);
     createHealthDataMutation.mutate(payload);

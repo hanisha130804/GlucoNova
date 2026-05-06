@@ -212,16 +212,63 @@ const FOOD_ALIASES: Record<string, string[]> = {
   'bhatura': ['भठूरा', 'भटूरा'],
   
   // Kannada & Telugu aliases merged
-  'rice': ['ಅನ್ನ', 'ಅಕ್ಕಿ', 'అన్నం', 'బియ్యం', 'चावल'],
+  'rice': ['ಅನ್ನ', 'ಅಕ್ಕಿ', 'అన్నం', 'బియ్యం', 'चावल', 'chawal'],
   'white rice': ['ಬಿಳಿ ಅನ್ನ', 'తెల్ల అన్నం'],
-  'rasam': ['ರಸಂ', 'ಸಾರು', 'రసం', 'చారు'],
-  'vada': ['वडा', 'ವಡೆ', 'ವಡಾ', 'వడ', 'గారెలు'],
-  'curd rice': ['ಮೊಸರನ್ನ', 'ತಂಬಳಿ ಅನ್ನ', 'పెరుగు అన్నం', 'దద్దోజనం'],
+  'fried rice': ['फ्राइड राइस', 'ಫ್ರೈಡ್ ರೈಸ್', 'ఫ్రైడ్ రైస్'],
+  'rasam': ['ರಸಂ', 'ಸಾರು', 'రసం', 'చారు', 'chaaru'],
+  'vada': ['वडा', 'ವಡೆ', 'ವಡಾ', 'వడ', 'గారెలు', 'medu vada', 'medhu vada'],
+  'curd rice': ['ಮೊಸರನ್ನ', 'ತಂಬಳಿ ಅನ್ನ', 'పెరుగు అన్నం', 'దద్దోజనం', 'daddojanam', 'thayir sadam', 'thayir'],
   'vegetable curry': ['सब्जी करी', 'ತರಕಾರಿ ಪಲ್ಯ', 'కూరగాయల కూర'],
   'fish curry': ['मछली करी', 'ಮೀನು ಸಾರು', 'చేప కూర'],
+  'uttapam': ['उत्तपम', 'ಉತ್ತಪ್ಪ', 'ఉత్తప్పం', 'uthappam'],
+  'poha': ['पोहा', 'ಪೋಹಾ', 'పోహా', 'aval', 'avalakki', 'pohe'],
+  'khichdi': ['खिचड़ी', 'ಖಿಚಡಿ', 'ఖిచిడీ', 'kichdi', 'khichadi'],
+  'dhokla': ['ढोकला', 'ಢೋಕ್ಲಾ', 'ఢోక్లా', 'khaman'],
+  'rajma': ['राजमा', 'ರಾಜ್ಮಾ', 'రాజ్మా', 'kidney beans', 'kidneybeans'],
+  'chole': ['छोले', 'ಛೋಲೆ', 'ఛోలే', 'chana masala', 'chana', 'chickpea'],
+  'pav bhaji': ['पाव भाजी', 'ಪಾವ್ ಭಾಜಿ', 'పావ్ భాజీ', 'paav bhaji'],
+  'omelette': ['ऑमलेट', 'ಆಮ್ಲೆಟ್', 'ఆమ్లెట్', 'omlette', 'egg omelette'],
+  'boiled egg': ['उबला अंडा', 'ಬೇಯಿಸಿದ ಮೊಟ್ಟೆ', 'ఉడికించిన గుడ్డు'],
+  'paneer tikka': ['पनीर टिक्का', 'ಪನೀರ್ ಟಿಕ್ಕಾ', 'పనీర్ టిక్కా'],
+  'butter chicken': ['बटर चिकन', 'ಬಟರ್ ಚಿಕನ್', 'బటర్ చికెన్', 'murgh makhani', 'butter chiken'],
+  'aloo gobi': ['आलू गोभी', 'ಆಲೂ ಗೋಬಿ', 'ఆలూ గోబీ'],
+  'bhindi masala': ['भिंडी मसाला', 'ಬೆಂಡೆಕಾಯಿ', 'బెండకాయ', 'bhindi', 'okra'],
+  'sprouted moong': ['अंकुरित मूंग', 'ಮೊಳಕೆ ಹೆಸರು', 'మొలక పెసర', 'sprouts'],
+  'chicken tikka': ['चिकन टिक्का', 'ಚಿಕನ್ ಟಿಕ್ಕಾ', 'చికెన్ టిక్కా'],
+  'thepla': ['थेपला', 'ಥೆಪ್ಲಾ', 'థెప్లా'],
+  'kheer': ['खीर', 'ಪಾಯಸ', 'పాయసం', 'payasam', 'payas', 'payasa'],
+  'ladoo': ['लड्डू', 'ಲಾಡು', 'లడ్డూ', 'laddu', 'laddoo', 'ladu'],
 };
 
-// Function to normalize food name from any language to English key
+// Levenshtein distance calculation for fuzzy matching
+const levenshteinDistance = (a: string, b: string): number => {
+  const matrix: number[][] = [];
+  for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+  for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+  return matrix[b.length][a.length];
+};
+
+const calculateStringSimilarity = (str1: string, str2: string): number => {
+  const longer = str1.length > str2.length ? str1 : str2;
+  const shorter = str1.length > str2.length ? str2 : str1;
+  if (longer.length === 0) return 1.0;
+  return (longer.length - levenshteinDistance(longer, shorter)) / longer.length;
+};
+
+// Function to normalize food name from any language to English key with fuzzy matching
 const normalizeFoodName = (input: string): string => {
   const inputLower = input.toLowerCase().trim();
   
@@ -230,7 +277,7 @@ const normalizeFoodName = (input: string): string => {
     return inputLower;
   }
   
-  // Check aliases in all languages
+  // Check aliases in all languages (exact + contains)
   for (const [englishKey, aliases] of Object.entries(FOOD_ALIASES)) {
     for (const alias of aliases) {
       if (inputLower.includes(alias.toLowerCase()) || alias.toLowerCase().includes(inputLower)) {
@@ -239,11 +286,50 @@ const normalizeFoodName = (input: string): string => {
     }
   }
   
-  // Partial match in English database
+  // Partial/contains match in English database
   for (const key of Object.keys(indianFoodDatabase)) {
     if (inputLower.includes(key) || key.includes(inputLower)) {
       return key;
     }
+  }
+  
+  // Fuzzy matching: split input into words and find best match
+  const words = inputLower.split(/[\s,;+&]+/).filter(w => w.length > 2);
+  let bestMatch: { key: string; score: number } | null = null;
+  
+  for (const key of Object.keys(indianFoodDatabase)) {
+    // Try full input against key
+    const fullSimilarity = calculateStringSimilarity(inputLower, key);
+    if (fullSimilarity > 0.75) {
+      if (!bestMatch || fullSimilarity > bestMatch.score) {
+        bestMatch = { key, score: fullSimilarity };
+      }
+    }
+    
+    // Try each word against key
+    for (const word of words) {
+      const wordSimilarity = calculateStringSimilarity(word, key);
+      if (wordSimilarity > 0.78) {
+        if (!bestMatch || wordSimilarity > bestMatch.score) {
+          bestMatch = { key, score: wordSimilarity };
+        }
+      }
+    }
+    
+    // Try each word against each alias
+    const aliases = FOOD_ALIASES[key] || [];
+    for (const alias of aliases) {
+      const aliasSimilarity = calculateStringSimilarity(inputLower, alias.toLowerCase());
+      if (aliasSimilarity > 0.75) {
+        if (!bestMatch || aliasSimilarity > bestMatch.score) {
+          bestMatch = { key, score: aliasSimilarity };
+        }
+      }
+    }
+  }
+  
+  if (bestMatch && bestMatch.score > 0.75) {
+    return bestMatch.key;
   }
   
   return inputLower;
@@ -720,8 +806,8 @@ export default function AIFoodLogPage() {
               <Brain className="w-6 h-6 text-white animate-pulse" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">Intelligent Nutrition & Carb Logging</h1>
-              <p className="text-sm text-cyan-300">AI-powered meal analysis with Indian food understanding</p>
+              <h1 className="text-2xl font-bold text-white">{t('aiFood.header.title')}</h1>
+              <p className="text-sm text-cyan-300">{t('aiFood.header.subtitle')}</p>
             </div>
           </div>
           
@@ -762,7 +848,7 @@ export default function AIFoodLogPage() {
           }}>
             <AlertTriangle className="h-5 w-5 text-amber-400 animate-pulse" />
             <AlertDescription className="text-sm text-gray-300">
-              <strong>Educational Purpose Only:</strong> Nutrition values and health impact are estimates and may not be fully accurate. Always follow your doctor or dietitian's advice.
+              <strong>{t('aiFood.disclaimer').split(':')[0]}:</strong> {t('aiFood.disclaimer').split(': ').slice(1).join(': ')}
             </AlertDescription>
           </Alert>
 
@@ -775,14 +861,14 @@ export default function AIFoodLogPage() {
             }}>
               <div className="flex items-center gap-3 mb-6">
                 <Sparkles className="w-6 h-6 text-primary animate-pulse" />
-                <h2 className="text-2xl font-bold text-white">Log a New Meal</h2>
+                <h2 className="text-2xl font-bold text-white">{t('aiFood.newMeal')}</h2>
               </div>
 
               {/* Meal Time Selection */}
               <div className="mb-6">
                 <label className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
                   <Clock className="w-4 h-4 text-cyan-400" />
-                  Meal Time
+                  {t('aiFood.mealTime')}
                 </label>
                 <div className="grid grid-cols-4 gap-3">
                   {[
@@ -818,14 +904,14 @@ export default function AIFoodLogPage() {
               <div className="mb-6">
                 <Label className="text-gray-300 mb-2 flex items-center gap-2">
                   <Utensils className="w-4 h-4 text-primary" />
-                  Describe Your Meal *
+                  {t('aiFood.describeYourMeal')}
                 </Label>
                 
                 {/* Quick Select Indian Dishes */}
                 <div className="mb-4">
                   <div className="text-sm font-semibold text-gray-400 mb-2 flex items-center gap-2">
                     <Zap className="w-4 h-4 text-amber-400" />
-                    Quick Select (Popular Indian Dishes):
+                    {t('aiFood.quickSelect')}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {['curd rice', 'chapati', 'dal', 'biryani', 'idli', 'dosa', 'poha', 'paratha'].map((dish) => (
@@ -848,7 +934,7 @@ export default function AIFoodLogPage() {
                 <Textarea
                   value={mealDescription}
                   onChange={(e) => setMealDescription(e.target.value)}
-                  placeholder="e.g., curd rice with vegetables, 2 chapati with dal"
+                  placeholder={t('aiFood.voicePlaceholder')}
                   rows={4}
                   className="bg-gray-900/50 border-gray-700 text-white resize-none focus:border-primary"
                 />
@@ -880,7 +966,7 @@ export default function AIFoodLogPage() {
                   </div>
                 </div>
                 
-                <small className="text-gray-500 mt-2 block">✏️ You can edit the text before analyzing</small>
+                <small className="text-gray-500 mt-2 block">{t('aiFood.editBeforeAnalyze')}</small>
               </div>
 
               {/* Sugar Alert (Real-time) */}
@@ -927,7 +1013,7 @@ export default function AIFoodLogPage() {
               {/* Portion Size & Unit */}
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div>
-                  <Label className="text-gray-300 mb-2">Portion Size *</Label>
+                  <Label className="text-gray-300 mb-2">{t('aiFood.portionSize')}</Label>
                   <Input
                     type="number"
                     step="0.5"
@@ -939,7 +1025,7 @@ export default function AIFoodLogPage() {
                   />
                 </div>
                 <div>
-                  <Label className="text-gray-300 mb-2">Unit *</Label>
+                  <Label className="text-gray-300 mb-2">{t('aiFood.unit')}</Label>
                   <Select value={portionUnit} onValueChange={setPortionUnit}>
                     <SelectTrigger className="bg-gray-900/50 border-gray-700 text-white">
                       <SelectValue />
@@ -961,12 +1047,12 @@ export default function AIFoodLogPage() {
               <div className="mb-6">
                 <Label className="text-gray-300 mb-2 flex items-center gap-2">
                   <Flame className="w-4 h-4 text-amber-400" />
-                  Cooking Style (Optional)
+                  {t('aiFood.cookingStyle')}
                 </Label>
                 <Input
                   value={cookingStyle}
                   onChange={(e) => setCookingStyle(e.target.value)}
-                  placeholder="e.g., Fried, Grilled, Steamed"
+                  placeholder={t('aiFood.cookingStylePlaceholder')}
                   className="bg-gray-900/50 border-gray-700 text-white"
                 />
               </div>
@@ -985,12 +1071,12 @@ export default function AIFoodLogPage() {
                   {isAnalyzing ? (
                     <>
                       <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Analyzing...
+                      {t('aiFood.analyzing')}
                     </>
                   ) : (
                     <>
                       <Search className="w-5 h-5 mr-2 animate-pulse" />
-                      Analyze Meal
+                      {t('aiFood.analyzeMeal')}
                     </>
                   )}
                 </Button>
@@ -1000,7 +1086,7 @@ export default function AIFoodLogPage() {
                   className="flex-1 h-14 text-lg font-semibold border-red-500/50 text-red-400 hover:bg-red-500/10"
                 >
                   <X className="w-5 h-5 mr-2" />
-                  Clear Form
+                  {t('aiFood.clearForm')}
                 </Button>
               </div>
 
@@ -1013,7 +1099,7 @@ export default function AIFoodLogPage() {
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="text-xl font-bold text-white flex items-center gap-2">
                       <BarChart3 className="w-6 h-6 text-primary" />
-                      Analysis Results
+                      {t('aiFood.analysisResults')}
                     </h3>
                     <div className={`px-4 py-2 rounded-full text-sm font-bold border-2 ${
                       analysis.totals.overallImpactLevel === 'low' ? 'bg-emerald-900/30 text-emerald-400 border-emerald-500/50' :
@@ -1029,7 +1115,7 @@ export default function AIFoodLogPage() {
                     <div className="mb-6 p-4 rounded-xl bg-gray-900/50 border border-cyan-500/30">
                       <h4 className="text-sm font-bold text-cyan-400 mb-2 flex items-center gap-2">
                         <Info className="w-4 h-4" />
-                        Impact on Your Health
+                        {t('aiFood.impactOnHealth')}
                       </h4>
                       <p className="text-sm text-gray-300">{analysis.healthImpact.description}</p>
                     </div>
@@ -1090,25 +1176,25 @@ export default function AIFoodLogPage() {
                       background: 'linear-gradient(135deg, rgba(42, 125, 225, 0.1) 0%, rgba(26, 107, 200, 0.1) 100%)'
                     }}>
                       <div className="text-3xl font-black text-cyan-400">{analysis.totals.carbs}g</div>
-                      <div className="text-xs text-gray-400 mt-1">Carbohydrates</div>
+                      <div className="text-xs text-gray-400 mt-1">{t('aiFood.nutritionGrid.carbohydrates')}</div>
                     </div>
                     <div className="p-4 rounded-xl text-center transition-all hover:scale-105" style={{
                       background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%)'
                     }}>
                       <div className="text-3xl font-black text-emerald-400">{analysis.totals.protein}g</div>
-                      <div className="text-xs text-gray-400 mt-1">Protein</div>
+                      <div className="text-xs text-gray-400 mt-1">{t('aiFood.nutritionGrid.protein')}</div>
                     </div>
                     <div className="p-4 rounded-xl text-center transition-all hover:scale-105" style={{
                       background: 'linear-gradient(135deg, rgba(52, 211, 153, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%)'
                     }}>
                       <div className="text-3xl font-black text-green-400">{analysis.totals.fiber}g</div>
-                      <div className="text-xs text-gray-400 mt-1">Fiber</div>
+                      <div className="text-xs text-gray-400 mt-1">{t('aiFood.nutritionGrid.fiber')}</div>
                     </div>
                     <div className="p-4 rounded-xl text-center transition-all hover:scale-105" style={{
                       background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%)'
                     }}>
                       <div className="text-3xl font-black text-blue-400">{analysis.totals.calories}</div>
-                      <div className="text-xs text-gray-400 mt-1">Calories</div>
+                      <div className="text-xs text-gray-400 mt-1">{t('aiFood.nutritionGrid.calories')}</div>
                     </div>
                   </div>
 
@@ -1119,9 +1205,9 @@ export default function AIFoodLogPage() {
                     }}>
                       <h4 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
                         <Repeat className="w-5 h-5 text-cyan-400" />
-                        Smart Replacements
+                        {t('aiFood.smartReplacements')}
                       </h4>
-                      <p className="text-sm text-gray-400 mb-4">Healthier alternatives for better blood sugar control</p>
+                      <p className="text-sm text-gray-400 mb-4">{t('aiFood.healthierAlternatives')}</p>
                       
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {(() => {
@@ -1138,7 +1224,7 @@ export default function AIFoodLogPage() {
                             }`}>
                               {index === 0 && (
                                 <div className="absolute -top-3 right-3 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500 text-white shadow-lg">
-                                  BEST CHOICE
+                                  {t('aiFood.bestChoice')}
                                 </div>
                               )}
                               <div className="text-center mb-3">
@@ -1179,7 +1265,7 @@ export default function AIFoodLogPage() {
                                 size="sm"
                               >
                                 <CheckCircle className="w-4 h-4 mr-1" />
-                                Choose This
+                                {t('aiFood.chooseThis')}
                               </Button>
                             </div>
                           ));
@@ -1193,7 +1279,7 @@ export default function AIFoodLogPage() {
                     <div className="mb-6">
                       <h4 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                         <UtensilsCrossed className="w-5 h-5 text-amber-400" />
-                        Dish Breakdown
+                        {t('aiFood.dishBreakdown')}
                       </h4>
                       <div className="space-y-3">
                         {analysis.items.map((item, idx) => (
@@ -1240,7 +1326,7 @@ export default function AIFoodLogPage() {
                     <div className="mb-6">
                       <h4 className="text-sm font-bold text-emerald-400 mb-3 flex items-center gap-2">
                         <CheckCircle className="w-4 h-4" />
-                        Health Benefits
+                        {t('aiFood.healthBenefits')}
                       </h4>
                       <div className="space-y-2">
                         {analysis.benefits.map((benefit, idx) => (
@@ -1258,7 +1344,7 @@ export default function AIFoodLogPage() {
                     <div className="mb-6">
                       <h4 className="text-sm font-bold text-cyan-400 mb-3 flex items-center gap-2">
                         <ArrowRight className="w-4 h-4" />
-                        Healthier Alternatives
+                        {t('aiFood.healthierAlternativesSection')}
                       </h4>
                       <div className="space-y-2">
                         {analysis.alternatives.map((alt, idx) => (
@@ -1277,20 +1363,20 @@ export default function AIFoodLogPage() {
                   }}>
                     <h4 className="text-sm font-bold text-cyan-400 mb-3 flex items-center gap-2">
                       <Volume2 className="w-4 h-4" />
-                      💡 Diabetes Management Tips
+                      {t('aiFood.diabetesTipsSection')}
                     </h4>
                     <div className="space-y-2 text-xs text-gray-300">
                       <p className="flex items-start gap-2">
                         <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                        <span><strong>Portion Control:</strong> Eat smaller, frequent meals to maintain steady blood sugar levels.</span>
+                        <span><strong>{t('aiFood.portionControlTip').split(':')[0]}:</strong> {t('aiFood.portionControlTip').split(': ').slice(1).join(': ')}</span>
                       </p>
                       <p className="flex items-start gap-2">
                         <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                        <span><strong>Choose Low GI:</strong> Prefer foods with Glycemic Index below 55 for better control.</span>
+                        <span><strong>{t('aiFood.lowGITip').split(':')[0]}:</strong> {t('aiFood.lowGITip').split(': ').slice(1).join(': ')}</span>
                       </p>
                       <p className="flex items-start gap-2">
                         <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                        <span><strong>Stay Hydrated:</strong> Drink water regularly to help regulate blood sugar.</span>
+                        <span><strong>{t('aiFood.hydrationTip').split(':')[0]}:</strong> {t('aiFood.hydrationTip').split(': ').slice(1).join(': ')}</span>
                       </p>
                     </div>
                   </div>
@@ -1306,12 +1392,12 @@ export default function AIFoodLogPage() {
                       {logMealMutation.isPending ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Logging...
+                          {t('aiFood.logging')}
                         </>
                       ) : (
                         <>
                           <Save className="w-4 h-4 mr-2" />
-                          Log This Meal
+                          {t('aiFood.logThisMeal')}
                         </>
                       )}
                     </Button>
@@ -1321,7 +1407,7 @@ export default function AIFoodLogPage() {
                       className="flex-1 h-12 font-bold border-gray-600"
                     >
                       <X className="w-4 h-4 mr-2" />
-                      Close Analysis
+                      {t('aiFood.closeAnalysis')}
                     </Button>
                   </div>
                 </div>
@@ -1336,13 +1422,13 @@ export default function AIFoodLogPage() {
             }}>
               <div className="flex items-center gap-3 mb-6">
                 <BarChart3 className="w-6 h-6 text-blue-400 animate-pulse" />
-                <h2 className="text-2xl font-bold text-white">Recent Meals & Impact</h2>
+                <h2 className="text-2xl font-bold text-white">{t('aiFood.recentMeals')}</h2>
               </div>
 
               {mealsLoading ? (
                 <div className="text-center py-16">
                   <Loader2 className="w-10 h-10 animate-spin mx-auto text-primary mb-3" />
-                  <p className="text-gray-400">Loading meal history...</p>
+                  <p className="text-gray-400">{t('aiFood.loadingMealHistory')}</p>
                 </div>
               ) : Array.isArray(recentMeals) && recentMeals.length > 0 ? (
                 <div className="space-y-4">
@@ -1373,15 +1459,15 @@ export default function AIFoodLogPage() {
                       <div className="grid grid-cols-3 gap-3 text-xs">
                         <div className="text-center p-2 rounded-lg bg-gray-800/50">
                           <div className="font-bold text-cyan-400">{meal.totals?.carbs || 0}g</div>
-                          <div className="text-gray-500">Carbs</div>
+                          <div className="text-gray-500">{t('aiFood.nutritionGrid.carbohydrates')}</div>
                         </div>
                         <div className="text-center p-2 rounded-lg bg-gray-800/50">
                           <div className="font-bold text-emerald-400">{meal.totals?.protein || 0}g</div>
-                          <div className="text-gray-500">Protein</div>
+                          <div className="text-gray-500">{t('aiFood.nutritionGrid.protein')}</div>
                         </div>
                         <div className="text-center p-2 rounded-lg bg-gray-800/50">
                           <div className="font-bold text-blue-400">{meal.totals?.calories || 0}</div>
-                          <div className="text-gray-500">Cal</div>
+                          <div className="text-gray-500">{t('aiFood.nutritionGrid.calories')}</div>
                         </div>
                       </div>
                     </div>
@@ -1390,8 +1476,8 @@ export default function AIFoodLogPage() {
               ) : (
                 <div className="text-center py-16">
                   <BarChart3 className="w-16 h-16 text-gray-600 mx-auto mb-4 animate-pulse" />
-                  <p className="text-white font-semibold mb-2">No readings yet</p>
-                  <p className="text-gray-500 text-sm">Your recent glucose readings will appear here</p>
+                  <p className="text-white font-semibold mb-2">{t('aiFood.noReadingsYet')}</p>
+                  <p className="text-gray-500 text-sm">{t('aiFood.noReadingsDesc')}</p>
                 </div>
               )}
             </div>

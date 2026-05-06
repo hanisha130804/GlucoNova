@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { FoodImageService } from '@/services/FoodImageService';
 import { apiRequest } from '@/lib/queryClient';
+import { useTranslation } from 'react-i18next';
 
 interface SuggestionsData {
   dailyFocus: string;
@@ -177,6 +178,7 @@ const FOOD_ICONS: Record<string, string> = {
 };
 
 export default function SuggestionsActivityPage() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: suggestions, isLoading } = useQuery<SuggestionsData>({
@@ -949,15 +951,15 @@ export default function SuggestionsActivityPage() {
         <header className="flex items-center justify-between border-b border-border" style={{ height: '72px', padding: '0 24px' }}>
           <div className="flex items-center gap-4">
             <Sparkles className="w-6 h-6 text-primary" />
-            <h2 className="text-xl font-semibold">Suggestions & Activity</h2>
+            <h2 className="text-xl font-semibold">{t('navigation.suggestionsActivity')}</h2>
           </div>
         </header>
 
         <main className="flex-1 overflow-y-auto">
           <div className="w-full" style={{ padding: '24px 32px' }}>
             <div className="mb-6">
-              <h1 className="text-4xl font-bold mb-2">AI Health Coach Dashboard</h1>
-              <p className="text-muted-foreground">Personalized food suggestions and activity recommendations for better diabetes management</p>
+              <h1 className="text-4xl font-bold mb-2">{t('suggestions.dashboardTitle')}</h1>
+              <p className="text-muted-foreground">{t('suggestions.dashboardSubtitle')}</p>
             </div>
 
             {isLoading ? (
@@ -980,8 +982,8 @@ export default function SuggestionsActivityPage() {
                       <Bot className="w-12 h-12 text-white" />
                     </div>
                     <div>
-                      <h2 className="text-3xl font-bold mb-2">Your AI Health Coach</h2>
-                      <p className="opacity-90">Personal guidance for optimal diabetes management</p>
+                      <h2 className="text-3xl font-bold mb-2">{t('suggestions.aiCoach')}</h2>
+                      <p className="opacity-90">{t('suggestions.personalGuidance')}</p>
                     </div>
                   </div>
                   
@@ -992,10 +994,10 @@ export default function SuggestionsActivityPage() {
                   }}>
                     <h3 className="flex items-center gap-2 text-lg font-bold mb-3">
                       <Target className="w-5 h-5" />
-                      Today's Focus
+                      {t('suggestions.todaysFocus')}
                     </h3>
                     <p className="mb-4">
-                      You haven't logged meals consistently. Regular logging helps track patterns better. Let's aim for 3 meals today!
+                      {t('suggestions.focusMessage')}
                     </p>
                     <div className="h-2 bg-white/20 rounded-full overflow-hidden mb-2">
                       <div 
@@ -1004,7 +1006,7 @@ export default function SuggestionsActivityPage() {
                       />
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span>{mealProgress.current} of {mealProgress.total} meals logged</span>
+                      <span>{mealProgress.current} {t('suggestions.of')} {mealProgress.total} {t('suggestions.mealsLogged')}</span>
                       <span>{Math.round((mealProgress.current / mealProgress.total) * 100)}% complete</span>
                     </div>
                   </div>
@@ -1015,7 +1017,7 @@ export default function SuggestionsActivityPage() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <TrendingUp className="w-5 h-5 text-primary" />
-                      Your Weekly Goals
+                      {t('suggestions.weeklyGoals')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -1031,8 +1033,8 @@ export default function SuggestionsActivityPage() {
                             <Utensils className="w-6 h-6 text-blue-400" />
                           </div>
                           <div>
-                            <h3 className="font-bold">Meal Logging</h3>
-                            <p className="text-sm text-muted-foreground">Track 21 meals this week</p>
+                            <h3 className="font-bold">{t('suggestions.mealLogging')}</h3>
+                            <p className="text-sm text-muted-foreground">{t('suggestions.trackMeals', { count: 21 })}</p>
                           </div>
                         </div>
                         <div className="h-2 bg-gray-800 rounded-full overflow-hidden mb-2">
@@ -1058,8 +1060,8 @@ export default function SuggestionsActivityPage() {
                             <Footprints className="w-6 h-6 text-emerald-400" />
                           </div>
                           <div>
-                            <h3 className="font-bold">Physical Activity</h3>
-                            <p className="text-sm text-muted-foreground">150 minutes this week</p>
+                            <h3 className="font-bold">{t('suggestions.physicalActivity')}</h3>
+                            <p className="text-sm text-muted-foreground">{t('suggestions.activityMinutes', { mins: 150 })}</p>
                           </div>
                         </div>
                         <div className="h-2 bg-gray-800 rounded-full overflow-hidden mb-2">
@@ -1085,8 +1087,8 @@ export default function SuggestionsActivityPage() {
                             <Activity className="w-6 h-6 text-orange-400" />
                           </div>
                           <div>
-                            <h3 className="font-bold">Time in Range</h3>
-                            <p className="text-sm text-muted-foreground">Target: 80% this week</p>
+                            <h3 className="font-bold">{t('suggestions.timeInRange')}</h3>
+                            <p className="text-sm text-muted-foreground">{t('suggestions.targetPercent', { percent: 80 })}</p>
                           </div>
                         </div>
                         <div className="h-2 bg-gray-800 rounded-full overflow-hidden mb-2">
@@ -1110,9 +1112,9 @@ export default function SuggestionsActivityPage() {
                       <div>
                         <CardTitle className="flex items-center gap-2">
                           <Apple className="w-5 h-5 text-emerald-400" />
-                          Breakfast Ideas
+                          {t('suggestions.breakfastIdeas')}
                         </CardTitle>
-                        <p className="text-sm text-muted-foreground mt-2">Start your day with diabetes-friendly options</p>
+                        <p className="text-sm text-muted-foreground mt-2">{t('suggestions.startDay')}</p>
                       </div>
                       <Button 
                         onClick={refreshBreakfast} 
@@ -1121,7 +1123,7 @@ export default function SuggestionsActivityPage() {
                         className="flex items-center gap-2"
                       >
                         <RotateCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                        {isRefreshing ? 'Refreshing...' : 'New Ideas'}
+                        {isRefreshing ? t('suggestions.refreshing') : t('suggestions.newIdeas')}
                       </Button>
                     </div>
                   </CardHeader>
@@ -1146,9 +1148,9 @@ export default function SuggestionsActivityPage() {
                       <div>
                         <CardTitle className="flex items-center gap-2">
                           <Coffee className="w-5 h-5 text-amber-400" />
-                          Smart Snack Options
+                          {t('suggestions.smartSnacks')}
                         </CardTitle>
-                        <p className="text-sm text-muted-foreground mt-2">Healthy choices between meals</p>
+                        <p className="text-sm text-muted-foreground mt-2">{t('suggestions.healthyBetween')}</p>
                       </div>
                     </div>
                     
@@ -1160,21 +1162,21 @@ export default function SuggestionsActivityPage() {
                           size="sm"
                           onClick={showAllSnacks}
                         >
-                          All Snacks
+                          {t('suggestions.allSnacks')}
                         </Button>
                         <Button 
                           variant={activeSnackFilter === 'lowCal' ? 'default' : 'outline'}
                           size="sm"
                           onClick={filterByCalories}
                         >
-                          <Flame className="w-4 h-4 mr-1" /> Low Calorie
+                          <Flame className="w-4 h-4 mr-1" /> {t('suggestions.lowCalorie')}
                         </Button>
                         <Button 
                           variant={activeSnackFilter === 'highProtein' ? 'default' : 'outline'}
                           size="sm"
                           onClick={filterByProtein}
                         >
-                          <Dumbbell className="w-4 h-4 mr-1" /> High Protein
+                          <Dumbbell className="w-4 h-4 mr-1" /> {t('suggestions.highProtein')}
                         </Button>
                       </div>
                       
@@ -1185,7 +1187,7 @@ export default function SuggestionsActivityPage() {
                         disabled={isRefreshing}
                       >
                         <RotateCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                        {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                        {isRefreshing ? t('suggestions.refreshing') : t('suggestions.refresh')}
                       </Button>
                     </div>
                   </CardHeader>
@@ -1208,7 +1210,7 @@ export default function SuggestionsActivityPage() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <TrendingUp className="w-5 h-5 text-orange-400" />
-                      Insights from Your Logs
+                      {t('suggestions.insightsFromLogs')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -1226,9 +1228,9 @@ export default function SuggestionsActivityPage() {
                     ) : (
                       <div className="text-center py-8">
                         <Heart className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                        <p className="text-foreground font-medium">Start Logging to See Patterns</p>
+                        <p className="text-foreground font-medium">{t('suggestions.startLoggingPatterns')}</p>
                         <p className="text-muted-foreground text-sm mt-2">
-                          Log your meals and activities to receive personalized insights
+                          {t('suggestions.logForInsights')}
                         </p>
                       </div>
                     )}
@@ -1240,14 +1242,14 @@ export default function SuggestionsActivityPage() {
                   background: 'rgba(59, 130, 246, 0.08)',
                   backdropFilter: 'blur(8px)',
                 }}>
-                  <h3 className="font-semibold text-foreground mb-3">💡 General Diabetes Management Tips</h3>
+                  <h3 className="font-semibold text-foreground mb-3">{t('suggestions.diabetesTips')}</h3>
                   <div className="space-y-2 text-sm text-muted-foreground">
-                    <p>✓ Maintain consistent meal timing throughout the day</p>
-                    <p>✓ Never skip breakfast - it helps regulate blood sugar</p>
-                    <p>✓ Stay hydrated with 2.5-3L water daily</p>
-                    <p>✓ Aim for 7-8 hours of quality sleep</p>
-                    <p>✓ Practice stress management through meditation or yoga</p>
-                    <p>✓ Monitor blood glucose regularly and track trends</p>
+                    <p>{t('suggestions.tipConsistentTiming')}</p>
+                    <p>{t('suggestions.tipNeverSkip')}</p>
+                    <p>{t('suggestions.tipStayHydrated')}</p>
+                    <p>{t('suggestions.tipQualitySleep')}</p>
+                    <p>{t('suggestions.tipStressManagement')}</p>
+                    <p>{t('suggestions.tipMonitorRegularly')}</p>
                   </div>
                 </div>
               </div>
